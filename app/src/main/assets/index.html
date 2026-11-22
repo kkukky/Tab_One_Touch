@@ -109,6 +109,11 @@ textarea { flex: 1; min-height: 0; box-sizing: border-box; padding: 24px 28px; b
 .sw .knob { position: absolute; top: 6px; left: 8px; width: 44px; height: 44px; border-radius: 22px; background: var(--ghost); transition: left 0.15s, background 0.15s; }
 .sw[aria-checked="true"] { border-color: var(--accent); background: var(--accent); }
 .sw[aria-checked="true"] .knob { left: 56px; background: var(--accentFg); }
+.spage { position: absolute; inset: 0; z-index: 10; background: var(--bg); color: var(--text); transform: translateZ(0); will-change: transform; }
+.stitle { position: absolute; left: 192px; top: 52px; margin: 0; font-size: 72px; line-height: 1; font-weight: 900; }
+.sbody { position: absolute; left: 192px; top: 168px; width: 1536px; height: 960px; box-sizing: border-box; overflow-y: auto; -webkit-overflow-scrolling: touch; touch-action: pan-y; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 40px; align-content: start; padding-right: 8px; }
+.scol { display: flex; flex-direction: column; gap: 28px; min-width: 0; }
+.scol > * { flex: none; }
 </style>
 </head>
 <body>
@@ -221,10 +226,13 @@ textarea { flex: 1; min-height: 0; box-sizing: border-box; padding: 24px 28px; b
     <div class="player"><div class="ytwrap" id="ytwrap"></div></div>
   </div>
 
-  <div class="scrim" id="settings" hidden>
-    <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="set-title">
-      <h2 id="set-title">설정</h2>
-      <div class="dbody">
+  <div class="spage" id="settings" hidden>
+    <h2 class="stitle" id="set-title">설정</h2>
+    <button type="button" class="home" id="close-settings" aria-label="시작 화면으로 돌아가기">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11.5L12 4l9 7.5"/><path d="M5.5 10v9.5h13V10"/><path d="M10 19.5v-5h4v5"/></svg>
+    </button>
+    <div class="sbody">
+      <div class="scol">
       <div>
         <div class="label" style="margin-bottom:14px">메시지 폴더</div>
         <div class="fbox">
@@ -248,6 +256,8 @@ textarea { flex: 1; min-height: 0; box-sizing: border-box; padding: 24px 28px; b
           <div class="fhelp" id="vnone" hidden></div>
         </div>
       </div>
+      </div>
+      <div class="scol">
       <div>
         <div class="label" style="margin-bottom:14px">오른쪽 위 버튼 모양</div>
         <div class="fbox">
@@ -265,7 +275,6 @@ textarea { flex: 1; min-height: 0; box-sizing: border-box; padding: 24px 28px; b
         <input type="file" id="importfile" accept=".txt,text/plain" hidden>
       </div>
       </div>
-      <div class="row"><button type="button" class="pill save" id="close-settings">닫기</button></div>
     </div>
   </div>
 </div>
