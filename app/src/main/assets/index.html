@@ -101,6 +101,12 @@ textarea { flex: 1; min-height: 0; box-sizing: border-box; padding: 24px 28px; b
 .scount { font-size: 44px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--sec); }
 .ytwrap { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; background: #000; }
 .ytwrap iframe { height: 100%; aspect-ratio: 9 / 16; border: 0; background: #000; }
+.awake { position: absolute; top: 152px; right: 64px; z-index: 6; display: flex; align-items: center; gap: 20px; }
+.alabel { font-size: 30px; font-weight: 700; color: var(--text); opacity: 0.85; }
+.sw { position: relative; width: 120px; height: 64px; padding: 0; border-radius: 32px; border: 3px solid var(--ghost); background: transparent; box-sizing: border-box; }
+.sw .knob { position: absolute; top: 6px; left: 8px; width: 44px; height: 44px; border-radius: 22px; background: var(--ghost); transition: left 0.15s, background 0.15s; }
+.sw[aria-checked="true"] { border-color: var(--accent); background: var(--accent); }
+.sw[aria-checked="true"] .knob { left: 56px; background: var(--accentFg); }
 </style>
 </head>
 <body>
@@ -118,6 +124,11 @@ textarea { flex: 1; min-height: 0; box-sizing: border-box; padding: 24px 28px; b
     <button type="button" class="gear" id="open-settings" aria-label="설정">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
     </button>
+  </div>
+
+  <div class="awake">
+    <span class="alabel" id="alabel">화면 켜짐 유지</span>
+    <button type="button" class="sw" id="sw" role="switch" aria-checked="false" aria-labelledby="alabel"><span class="knob"></span></button>
   </div>
 
   <div class="card">
@@ -234,6 +245,17 @@ textarea { flex: 1; min-height: 0; box-sizing: border-box; padding: 24px 28px; b
           <div class="fhelp" id="vnone" hidden></div>
         </div>
       </div>
+      <div>
+        <div class="label" style="margin-bottom:14px">오른쪽 위 버튼 모양</div>
+        <div class="fbox">
+          <div class="fhelp">테마 버튼에 색상 무늬(지금 그대로)를 쓸지, 폴더의 이미지를 쓸지 고릅니다. Tab_One_Touch 폴더에 1.jpg, 2.jpg, 3.jpg를 넣으면 순서대로 들어가며, 버튼 크기에 맞게 가운데를 기준으로 자동으로 잘라 줍니다.</div>
+          <div class="vlist" style="margin-top:12px">
+            <button type="button" class="vitem" id="m-color" aria-pressed="true"><span>색상 (지금 그대로)</span></button>
+            <button type="button" class="vitem" id="m-image" aria-pressed="false"><span>이미지 (1.jpg, 2.jpg, 3.jpg)</span></button>
+          </div>
+          <div class="fhelp" id="imgnote"></div>
+        </div>
+      </div>
       <div id="fallback" hidden>
         <div class="fhelp" style="margin-bottom:14px">폴더를 열 수 없을 때는 메시지 파일(.txt)을 불러올 수 있습니다. 이 방법은 불러오기만 되고 폴더에 저장되지는 않습니다.</div>
         <button type="button" class="pill" id="import">메시지 파일 불러오기</button>
@@ -293,18 +315,23 @@ textarea { flex: 1; min-height: 0; box-sizing: border-box; padding: 24px 28px; b
     var btns = $("themes").children;
     for (var i = 0; i < btns.length; i++) btns[i].setAttribute("aria-pressed", i === theme ? "true" : "false");
   }
+  var tbtns = [];
+  function grad(t) { return "linear-gradient(135deg," + t.s1 + " 0 34%," + t.s2 + " 34% 67%," + t.s3 + " 67% 100%)"; }
   function buildThemes() {
     var box = $("themes");
     box.textContent = "";
+    tbtns = [];
     THEMES.forEach(function (t, i) {
       var b = document.createElement("button");
       b.type = "button";
       b.className = "tb";
-      b.style.background = "linear-gradient(135deg," + t.s1 + " 0 34%," + t.s2 + " 34% 67%," + t.s3 + " 67% 100%)";
+      b.style.background = grad(t);
+      tbtns.push(b);
       b.setAttribute("aria-label", "테마 " + (i + 1) + " " + t.name);
       b.addEventListener("click", function () { theme = i; save("cm-theme", String(i)); applyTheme(); });
       box.appendChild(b);
     });
+    if (typeof paintThemes === "function") paintThemes();
   }
 
   /* 폴더 연결 (File System Access API). 열 수 없는 환경에서는 안내만 보여 줍니다. */
@@ -415,6 +442,7 @@ textarea { flex: 1; min-height: 0; box-sizing: border-box; padding: 24px 28px; b
     $("pick").style.opacity = fsSupported() ? "1" : "0.4";
     $("fallback").hidden = !(note);
     if (typeof renderVideos === "function") renderVideos();
+    if (typeof refreshImages === "function") refreshImages();
   }
   function openSettings() { setNote = ""; renderSettings(); renderVideos(); $("settings").hidden = false; }
   function closeSettings() { $("settings").hidden = true; }
@@ -705,6 +733,69 @@ textarea { flex: 1; min-height: 0; box-sizing: border-box; padding: 24px 28px; b
   });
   $("l-back").addEventListener("click", closeLeave);
 
+  /* 테마 버튼 이미지 (1.jpg, 2.jpg, 3.jpg) */
+  var IMGMODE = load("cm-themeimg", "0") === "1";
+  var imgs = [null, null, null];
+  function paintThemes() {
+    tbtns.forEach(function (b, i) {
+      if (IMGMODE && imgs[i]) b.style.background = 'url("' + imgs[i] + '") center / cover no-repeat';
+      else b.style.background = grad(THEMES[i]);
+    });
+  }
+  function cropData(blob) {
+    return new Promise(function (res) {
+      var u = URL.createObjectURL(blob), im = new Image();
+      im.onload = function () {
+        var c = document.createElement("canvas"); c.width = c.height = 176;
+        var k = Math.max(176 / im.width, 176 / im.height), w = im.width * k, h = im.height * k;
+        c.getContext("2d").drawImage(im, (176 - w) / 2, (176 - h) / 2, w, h);
+        URL.revokeObjectURL(u); res(c.toDataURL("image/jpeg", 0.9));
+      };
+      im.onerror = function () { URL.revokeObjectURL(u); res(null); };
+      im.src = u;
+    });
+  }
+  function loadImage(i) {
+    var nm = (i + 1) + ".jpg";
+    if (NATIVE) {
+      if (!folderName) return Promise.resolve(null);
+      try { return Promise.resolve(NATIVE.readImage(nm) || null); } catch (e) { return Promise.resolve(null); }
+    }
+    if (!dirHandle) return Promise.resolve(null);
+    return hasPerm(false).then(function (ok) {
+      if (!ok) return null;
+      return dirHandle.getFileHandle(nm).then(function (fh) { return fh.getFile(); }).then(cropData, function () { return null; });
+    }).catch(function () { return null; });
+  }
+  function renderImgStatus() {
+    $("m-color").setAttribute("aria-pressed", IMGMODE ? "false" : "true");
+    $("m-image").setAttribute("aria-pressed", IMGMODE ? "true" : "false");
+    var parts = [0, 1, 2].map(function (i) { return (i + 1) + ".jpg " + (imgs[i] ? "있음" : "없음"); });
+    var t = connected() ? parts.join(" · ") : "폴더를 먼저 선택하면 이미지를 확인합니다.";
+    if (connected() && IMGMODE && !imgs[0] && !imgs[1] && !imgs[2]) t += "\n이미지가 없는 버튼은 색상 무늬로 보입니다.";
+    $("imgnote").style.whiteSpace = "pre-line";
+    $("imgnote").textContent = t;
+  }
+  function refreshImages() {
+    return Promise.all([0, 1, 2].map(loadImage)).then(function (r) { imgs = r; paintThemes(); renderImgStatus(); });
+  }
+  function setImgMode(on) { IMGMODE = on; save("cm-themeimg", on ? "1" : "0"); paintThemes(); renderImgStatus(); }
+  $("m-color").addEventListener("click", function () { setImgMode(false); });
+  $("m-image").addEventListener("click", function () { setImgMode(true); });
+
+  /* 화면 켜짐 유지 스위치 */
+  var awake = load("cm-awake", "0") === "1";
+  var wakeLock = null;
+  function applyAwake() {
+    $("sw").setAttribute("aria-checked", awake ? "true" : "false");
+    if (NATIVE && NATIVE.setKeepAwake) { try { NATIVE.setKeepAwake(awake); } catch (e) {} return; }
+    if (!navigator.wakeLock) return;
+    if (awake) { navigator.wakeLock.request("screen").then(function (l) { wakeLock = l; }).catch(function () {}); }
+    else if (wakeLock) { wakeLock.release().catch(function () {}); wakeLock = null; }
+  }
+  $("sw").addEventListener("click", function () { awake = !awake; save("cm-awake", awake ? "1" : "0"); applyAwake(); });
+  document.addEventListener("visibilitychange", function () { if (awake && !NATIVE && !document.hidden) applyAwake(); });
+
   /* 시계 */
   var DAYS = ["일", "월", "화", "수", "목", "금", "토"];
   function pad(n) { return (n < 10 ? "0" : "") + n; }
@@ -717,19 +808,21 @@ textarea { flex: 1; min-height: 0; box-sizing: border-box; padding: 24px 28px; b
 
   buildThemes();
   applyTheme();
+  renderImgStatus();
+  applyAwake();
   showMsg();
   tick();
   setInterval(tick, 500);
 
   /* 저장된 폴더 다시 연결 + 폴더 파일이 바뀌면 메시지 갱신 */
-  function sync() { if ($("editor").hidden) readFolder(false); }
+  function sync() { if ($("editor").hidden) readFolder(false); refreshImages(); }
   if (fsSupported()) {
     if (NATIVE) {
       try { folderName = NATIVE.folderName() || ""; } catch (e) { folderName = ""; }
-      if (folderName) { renderSrc(); readFolder(true); }
+      if (folderName) { renderSrc(); readFolder(true); refreshImages(); }
     } else {
       dbGet().then(function (h) {
-        if (h) { dirHandle = h; folderName = h.name || folderName; renderSrc(); return readFolder(true); }
+        if (h) { dirHandle = h; folderName = h.name || folderName; renderSrc(); refreshImages(); return readFolder(true); }
       });
     }
     setInterval(sync, 10000);

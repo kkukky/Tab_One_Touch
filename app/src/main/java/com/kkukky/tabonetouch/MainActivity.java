@@ -4,7 +4,12 @@ import android.app.Activity;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.net.Uri;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.media.ThumbnailUtils;
 import android.os.Bundle;
+import android.util.Base64;
+import android.view.WindowManager;
 import android.view.View;
 import android.widget.FrameLayout;
 import android.webkit.JavascriptInterface;
@@ -326,6 +331,55 @@ public class MainActivity extends Activity {
                 public void run() {
                     yt.loadDataWithBaseURL("https://tabonetouch.local/", html, "text/html", "utf-8", null);
                     yt.setVisibility(View.VISIBLE);
+                }
+            });
+        }
+
+        /** 폴더의 이미지를 176x176(버튼 크기의 2배)으로 가운데 기준 잘라 data URL로 돌려줍니다. 없으면 null. */
+        @JavascriptInterface
+        public String readImage(String name) {
+            try {
+                DocumentFile dir = appDir();
+                if (dir == null || name == null) return null;
+                DocumentFile f = dir.findFile(name);
+                if (f == null) {
+                    for (DocumentFile c : dir.listFiles()) {
+                        if (c.getName() != null && c.getName().equalsIgnoreCase(name)) { f = c; break; }
+                    }
+                }
+                if (f == null || !f.isFile()) return null;
+                BitmapFactory.Options o = new BitmapFactory.Options();
+                o.inJustDecodeBounds = true;
+                InputStream a = getContentResolver().openInputStream(f.getUri());
+                if (a == null) return null;
+                BitmapFactory.decodeStream(a, null, o);
+                a.close();
+                int sample = 1;
+                while (o.outWidth / (sample * 2) >= 352 && o.outHeight / (sample * 2) >= 352) sample *= 2;
+                BitmapFactory.Options o2 = new BitmapFactory.Options();
+                o2.inSampleSize = sample;
+                InputStream b = getContentResolver().openInputStream(f.getUri());
+                if (b == null) return null;
+                Bitmap bmp = BitmapFactory.decodeStream(b, null, o2);
+                b.close();
+                if (bmp == null) return null;
+                Bitmap th = ThumbnailUtils.extractThumbnail(bmp, 176, 176);
+                ByteArrayOutputStream out = new ByteArrayOutputStream();
+                th.compress(Bitmap.CompressFormat.JPEG, 90, out);
+                return "data:image/jpeg;base64," + Base64.encodeToString(out.toByteArray(), Base64.NO_WRAP);
+            } catch (Exception e) {
+                return null;
+            }
+        }
+
+        /** 화면 켜짐 유지. */
+        @JavascriptInterface
+        public void setKeepAwake(final boolean on) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    if (on) getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+                    else getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
                 }
             });
         }
