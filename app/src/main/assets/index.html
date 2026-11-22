@@ -39,7 +39,7 @@ button:focus-visible, textarea:focus-visible { outline: 4px solid #FFD400; outli
 .gear { width: 88px; height: 88px; flex: none; margin-left: 32px; display: flex; align-items: center; justify-content: center; padding: 0; border-radius: 44px; border: 3px solid var(--ghost); background: transparent; color: var(--text); }
 .gear svg { width: 44px; height: 44px; }
 .labelrow { display: flex; align-items: baseline; justify-content: space-between; gap: 24px; }
-.srcnote { font-size: 28px; font-weight: 500; color: var(--text); opacity: 0.75; text-align: right; }
+.srcnote { font-size: 28px; font-weight: 700; color: var(--sec); line-height: 1.4; overflow-wrap: anywhere; }
 .scrim { position: absolute; inset: 0; z-index: 10; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.72); }
 .dialog { width: 1040px; box-sizing: border-box; max-height: 1100px; overflow-y: auto; display: flex; flex-direction: column; gap: 28px; padding: 48px; border-radius: 36px; border: 3px solid var(--ghost); background: var(--card); color: var(--text); }
 .dialog h2 { margin: 0; font-size: 56px; font-weight: 900; }
@@ -88,7 +88,7 @@ textarea { flex: 1; min-height: 0; box-sizing: border-box; padding: 24px 28px; b
   </div>
 
   <div class="card">
-    <div class="labelrow"><div class="label">오늘의 메시지</div><div class="srcnote" id="srcnote" hidden></div></div>
+    <div class="label">오늘의 메시지</div>
     <div id="view" style="display:contents">
       <div class="msg" id="msg"></div>
       <div class="row">
@@ -133,6 +133,7 @@ textarea { flex: 1; min-height: 0; box-sizing: border-box; padding: 24px 28px; b
         <div class="fbox">
           <div class="fname" id="fname"></div>
           <div class="fhelp">고른 위치에 Tab_One_Touch 폴더를 만들어 사용합니다(이미 있으면 그대로 사용). 그 안의 오늘의메시지.txt 파일로 오늘의 메시지를 읽고 저장하며, 파일이 없으면 새로 만듭니다.</div>
+          <div class="srcnote" id="srcnote" hidden></div>
         </div>
       </div>
       <div class="note" id="fnote" hidden></div>
