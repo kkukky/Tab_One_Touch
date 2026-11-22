@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tab_One_Touch</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+/* 갤럭시탭 가로 1920x1200 고정 무대를 화면 크기에 맞춰 비율 유지로 확대/축소. 색은 테마 변수로 바뀝니다. */
+:root { color-scheme: dark; }
+html, body { height: 100%; margin: 0; background: #000; overflow: hidden; }
+body { font-family: "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif; }
+button { font-family: inherit; cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+button:active:not(:disabled) { transform: scale(0.985); }
+button:focus-visible, textarea:focus-visible { outline: 4px solid #FFD400; outline-offset: 4px; }
+[hidden] { display: none !important; }
+
+#stage {
+  --bg: #000000; --card: #000000; --text: #FFFFFF; --sec: #E10600; --label: #E10600; --cardBorder: #333333; --ghost: #4A4A4A;
+  --accent: #E10600; --accentFg: #FFFFFF; --inBg: #E10600; --inFg: #FFFFFF; --outBg: #FFD400; --outFg: #111111;
+  --srcBg: #FFFFFF; --srcFg: #111111; --etcBg: #1A1A1A; --sa: #008C45; --sb: #FFFFFF; --sc: #E10600;
+  position: absolute; left: 0; top: 0; width: 1920px; height: 1200px; box-sizing: border-box;
+  padding: 56px 64px; display: flex; flex-direction: column; gap: 40px;
+  background: var(--bg); color: var(--text); transform-origin: 0 0; overflow: hidden;
+}
+.top { display: flex; align-items: flex-end; justify-content: space-between; gap: 32px; height: 270px; }
+.clock { display: flex; align-items: baseline; gap: 16px; height: 287px; }
+.hm { font-size: 300px; line-height: 0.88; font-weight: 900; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; color: var(--text); }
+.sec { font-size: 150px; line-height: 0.88; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; color: var(--sec); }
+.dateblock { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; padding-bottom: 16px; }
+.date { font-size: 56px; font-weight: 700; }
+.stripe { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); width: 180px; height: 10px; border-radius: 5px; overflow: hidden; }
+
+.themes { position: absolute; top: 40px; right: 64px; display: flex; align-items: center; z-index: 6; }
+.tb { width: 88px; height: 88px; flex: none; padding: 0; border-radius: 44px; border: 3px solid var(--ghost); box-shadow: 0 0 0 4px var(--bg), 0 0 0 8px transparent; }
+.tb[aria-pressed="true"] { box-shadow: 0 0 0 4px var(--bg), 0 0 0 8px var(--text); }
+.gear { width: 88px; height: 88px; flex: none; margin-left: 32px; display: flex; align-items: center; justify-content: center; padding: 0; border-radius: 44px; border: 3px solid var(--ghost); background: transparent; color: var(--text); }
+.gear svg { width: 44px; height: 44px; }
+.labelrow { display: flex; align-items: baseline; justify-content: space-between; gap: 24px; }
+.srcnote { font-size: 28px; font-weight: 500; color: var(--text); opacity: 0.75; text-align: right; }
+.scrim { position: absolute; inset: 0; z-index: 10; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.72); }
+.dialog { width: 1040px; box-sizing: border-box; max-height: 1100px; overflow-y: auto; display: flex; flex-direction: column; gap: 28px; padding: 48px; border-radius: 36px; border: 3px solid var(--ghost); background: var(--card); color: var(--text); }
+.dialog h2 { margin: 0; font-size: 56px; font-weight: 900; }
+.fbox { display: flex; flex-direction: column; gap: 10px; padding: 28px 32px; border-radius: 24px; border: 2px solid var(--cardBorder); }
+.fname { font-size: 44px; font-weight: 900; overflow-wrap: anywhere; }
+.fhelp { font-size: 28px; font-weight: 500; opacity: 0.75; line-height: 1.4; }
+.note { font-size: 30px; font-weight: 700; line-height: 1.4; color: var(--sec); }
+.pill.main { border-color: var(--accent); background: var(--accent); color: var(--accentFg); font-weight: 900; }
+.wrap { display: flex; flex-wrap: wrap; gap: 20px; }
+
+.card { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 20px; box-sizing: border-box; padding: 40px 48px; border: 2px solid var(--cardBorder); border-radius: 36px; background: var(--card); }
+.label { font-size: 30px; font-weight: 500; color: var(--label); }
+.msg { white-space: pre-line; flex: 1; min-height: 0; font-size: 88px; line-height: 1.25; font-weight: 900; overflow: hidden; overflow-wrap: anywhere; }
+.row { display: flex; justify-content: flex-end; gap: 20px; }
+.edit { display: flex; align-items: center; justify-content: center; width: 120px; height: 89px; border-radius: 44px; border: 3px solid var(--ghost); background: transparent; color: var(--text); padding: 0; }
+.edit svg { width: 36px; height: 36px; }
+textarea { flex: 1; min-height: 0; box-sizing: border-box; padding: 24px 28px; border-radius: 24px; border: 3px solid var(--accent); background: var(--card); color: var(--text); font-family: inherit; font-size: 72px; line-height: 1.25; font-weight: 700; resize: none; }
+.pill { height: 88px; padding: 0 44px; border-radius: 44px; border: 3px solid var(--ghost); background: transparent; color: var(--text); font-size: 36px; font-weight: 700; }
+.pill.save { padding: 0 56px; border-color: var(--accent); background: var(--accent); color: var(--accentFg); font-weight: 900; }
+
+.bar { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 24px; height: 280px; }
+.big { display: flex; flex-direction: column; justify-content: center; align-items: flex-start; gap: 12px; padding: 0 48px; border-radius: 36px; border: 3px solid; text-align: left; }
+.big svg { width: 64px; height: 64px; }
+.big span { font-size: 96px; line-height: 1; font-weight: 900; white-space: nowrap; }
+.big.in { background: var(--inBg); border-color: var(--inBg); color: var(--inFg); }
+.big.out { background: var(--outBg); border-color: var(--outBg); color: var(--outFg); }
+.big.src { background: var(--srcBg); border-color: var(--srcBg); color: var(--srcFg); }
+.big.etc { background: var(--etcBg); border-color: var(--ghost); color: var(--text); }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div class="top">
+    <div class="clock"><div class="hm" id="hm">--:--</div><div class="sec" id="sec">:--</div></div>
+    <div class="dateblock">
+      <div class="date" id="date"></div>
+      <div class="stripe" aria-hidden="true"><div style="background:var(--sa)"></div><div style="background:var(--sb)"></div><div style="background:var(--sc)"></div></div>
+    </div>
+  </div>
+
+  <div class="themes">
+    <div id="themes" role="group" aria-label="테마 선택" style="display:flex;gap:24px"></div>
+    <button type="button" class="gear" id="open-settings" aria-label="설정">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+    </button>
+  </div>
+
+  <div class="card">
+    <div class="labelrow"><div class="label">오늘의 메시지</div><div class="srcnote" id="srcnote" hidden></div></div>
+    <div id="view" style="display:contents">
+      <div class="msg" id="msg"></div>
+      <div class="row">
+        <button type="button" class="edit" id="edit" aria-label="메시지 수정">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16v4z"/><path d="M13.5 6.5l4 4"/></svg>
+        </button>
+      </div>
+    </div>
+    <div id="editor" style="display:contents" hidden>
+      <textarea id="draft" aria-label="메시지 입력" maxlength="120"></textarea>
+      <div class="row">
+        <button type="button" class="pill" id="cancel">취소</button>
+        <button type="button" class="pill save" id="save">저장</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="bar">
+    <button type="button" class="big in" id="b-in">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 18h18"/><path d="M7 18a5 5 0 0 1 10 0"/><path d="M12 6v3M5.6 10.6l1.8 1.8M18.4 10.6l-1.8 1.8"/></svg>
+      <span>출근</span>
+    </button>
+    <button type="button" class="big out" id="b-out">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg>
+      <span>퇴근</span>
+    </button>
+    <button type="button" class="big src" id="b-src">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/></svg>
+      <span>소스</span>
+    </button>
+    <button type="button" class="big etc" id="b-etc">
+      <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5.5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="18.5" cy="12" r="2"/></svg>
+      <span>기타</span>
+    </button>
+  </div>
+
+  <div class="scrim" id="settings" hidden>
+    <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="set-title">
+      <h2 id="set-title">설정</h2>
+      <div>
+        <div class="label" style="margin-bottom:14px">메시지 폴더</div>
+        <div class="fbox">
+          <div class="fname" id="fname"></div>
+          <div class="fhelp">고른 위치에 Tab_One_Touch 폴더를 만들어 사용합니다(이미 있으면 그대로 사용). 그 안의 오늘의메시지.txt 파일로 오늘의 메시지를 읽고 저장하며, 파일이 없으면 새로 만듭니다.</div>
+        </div>
+      </div>
+      <div class="note" id="fnote" hidden></div>
+      <div class="wrap">
+        <button type="button" class="pill main" id="pick">폴더 선택</button>
+        <button type="button" class="pill" id="regrant" hidden>접근 허용</button>
+        <button type="button" class="pill" id="unlink" hidden>폴더 해제</button>
+      </div>
+      <div id="fallback" hidden>
+        <div class="fhelp" style="margin-bottom:14px">폴더를 열 수 없을 때는 메시지 파일(.txt)을 불러올 수 있습니다. 이 방법은 불러오기만 되고 폴더에 저장되지는 않습니다.</div>
+        <button type="button" class="pill" id="import">메시지 파일 불러오기</button>
+        <input type="file" id="importfile" accept=".txt,text/plain" hidden>
+      </div>
+      <div class="row"><button type="button" class="pill save" id="close-settings">닫기</button></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  // 새 테마는 이 목록 끝에 한 줄씩 추가합니다. 테마 버튼은 목록 개수만큼 만들어집니다.
+  var THEMES = [
+    { name: "레드·블랙", bg: "#000000", card: "#000000", text: "#FFFFFF", sec: "#E10600", label: "#E10600", cardBorder: "#333333", ghost: "#4A4A4A",
+      accent: "#E10600", accentFg: "#FFFFFF", inBg: "#E10600", inFg: "#FFFFFF", outBg: "#FFD400", outFg: "#111111", srcBg: "#FFFFFF", srcFg: "#111111", etcBg: "#1A1A1A",
+      sa: "#008C45", sb: "#FFFFFF", sc: "#E10600", s1: "#E10600", s2: "#FFD400", s3: "#000000" },
+    { name: "네이비·레드·옐로", bg: "#091540", card: "#0F2058", text: "#FFFFFF", sec: "#FFC906", label: "#FFC906", cardBorder: "#2A3C80", ghost: "#4A62B8",
+      accent: "#DB0A40", accentFg: "#FFFFFF", inBg: "#DB0A40", inFg: "#FFFFFF", outBg: "#FFC906", outFg: "#0A1640", srcBg: "#FFFFFF", srcFg: "#0A1640", etcBg: "#16296B",
+      sa: "#DB0A40", sb: "#FFC906", sc: "#FFFFFF", s1: "#DB0A40", s2: "#FFC906", s3: "#091540" },
+    { name: "블랙·틸·실버", bg: "#070909", card: "#0E1212", text: "#FFFFFF", sec: "#00D2BE", label: "#00D2BE", cardBorder: "#2A3434", ghost: "#52625F",
+      accent: "#00D2BE", accentFg: "#04100F", inBg: "#00D2BE", inFg: "#04100F", outBg: "#B9BEC2", outFg: "#0B0D0D", srcBg: "#A6192E", srcFg: "#FFFFFF", etcBg: "#1A2020",
+      sa: "#00D2BE", sb: "#B9BEC2", sc: "#A6192E", s1: "#00D2BE", s2: "#B9BEC2", s3: "#070909" }
+  ];
+  var VARS = ["bg", "card", "text", "sec", "label", "cardBorder", "ghost", "accent", "accentFg", "inBg", "inFg", "outBg", "outFg", "srcBg", "srcFg", "etcBg", "sa", "sb", "sc"];
+  var DEFAULT_MSG = "오늘 할 일 하나만 먼저 끝내자.";
+  var FILE = "오늘의메시지.txt";
+  var APPDIR = "Tab_One_Touch";
+
+  function $(id) { return document.getElementById(id); }
+  function load(k, f) { try { var v = localStorage.getItem(k); return v === null ? f : v; } catch (e) { return f; } }
+  function save(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+
+  var stage = $("stage");
+  var theme = parseInt(load("cm-theme", "0"), 10);
+  if (!(theme >= 0 && theme < THEMES.length)) theme = 0;
+  var message = load("cm-msg", DEFAULT_MSG);
+
+  /* 화면 맞춤 */
+  function fit() {
+    var w = window.innerWidth, h = window.innerHeight;
+    var s = Math.min(w / 1920, h / 1200);
+    stage.style.transform = "translate(" + Math.round((w - 1920 * s) / 2) + "px," + Math.round((h - 1200 * s) / 2) + "px) scale(" + s + ")";
+  }
+  window.addEventListener("resize", fit);
+  fit();
+
+  /* 테마 */
+  function applyTheme() {
+    var t = THEMES[theme];
+    VARS.forEach(function (k) { stage.style.setProperty("--" + k, t[k]); });
+    var btns = $("themes").children;
+    for (var i = 0; i < btns.length; i++) btns[i].setAttribute("aria-pressed", i === theme ? "true" : "false");
+  }
+  function buildThemes() {
+    var box = $("themes");
+    box.textContent = "";
+    THEMES.forEach(function (t, i) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "tb";
+      b.style.background = "linear-gradient(135deg," + t.s1 + " 0 34%," + t.s2 + " 34% 67%," + t.s3 + " 67% 100%)";
+      b.setAttribute("aria-label", "테마 " + (i + 1) + " " + t.name);
+      b.addEventListener("click", function () { theme = i; save("cm-theme", String(i)); applyTheme(); });
+      box.appendChild(b);
+    });
+  }
+
+  /* 폴더 연결 (File System Access API). 열 수 없는 환경에서는 안내만 보여 줍니다. */
+  var dirHandle = null;
+  var folderName = load("cm-folder-name", "");
+  var needsPerm = false;
+  var lastMod = 0;
+  var srcErr = "";
+  var setNote = "";
+  var NATIVE = window.Native || null; // 안드로이드 앱 안에서는 앱이 폴더 접근을 맡습니다
+  function fsSupported() { return !!NATIVE || typeof window.showDirectoryPicker === "function"; }
+  function connected() { return NATIVE ? !!folderName : !!dirHandle; }
+
+  function idb() {
+    return new Promise(function (res, rej) {
+      var r = indexedDB.open("cm-fs", 1);
+      r.onupgradeneeded = function () { r.result.createObjectStore("h"); };
+      r.onsuccess = function () { res(r.result); };
+      r.onerror = function () { rej(r.error); };
+    });
+  }
+  function dbOp(mode, fn) {
+    return idb().then(function (db) {
+      return new Promise(function (res, rej) {
+        var q = fn(db.transaction("h", mode).objectStore("h"));
+        q.onsuccess = function () { res(q.result || null); };
+        q.onerror = function () { rej(q.error); };
+      });
+    });
+  }
+  function dbGet() { return dbOp("readonly", function (st) { return st.get("dir"); }).catch(function () { return null; }); }
+  function dbSet(h) { return dbOp("readwrite", function (st) { return st.put(h, "dir"); }).catch(function () {}); }
+  function dbDel() { return dbOp("readwrite", function (st) { return st.delete("dir"); }).catch(function () {}); }
+
+  function hasPerm(ask) {
+    var o = { mode: "readwrite" };
+    return dirHandle.queryPermission(o).then(function (p) {
+      if (p === "granted") return true;
+      if (!ask) return false;
+      return dirHandle.requestPermission(o).then(function (q) { return q === "granted"; });
+    });
+  }
+  function writeFolder(text) {
+    if (NATIVE) {
+      return new Promise(function (res, rej) {
+        var ok = false;
+        try { ok = NATIVE.write(text); } catch (e) {}
+        if (ok) res(); else rej(new Error("write"));
+      });
+    }
+    return dirHandle.getFileHandle(FILE, { create: true }).then(function (fh) {
+      return fh.createWritable().then(function (w) {
+        return w.write(text).then(function () { return w.close(); });
+      }).then(function () { return fh.getFile(); }).then(function (f) { lastMod = f.lastModified; });
+    });
+  }
+  function readFolder(force) {
+    if (NATIVE) {
+      if (!folderName) return Promise.resolve();
+      var nt = null;
+      try { nt = NATIVE.read(); } catch (e) { srcErr = "폴더를 읽지 못했습니다."; renderSrc(); return Promise.resolve(); }
+      if (nt === null || nt === undefined) {
+        return writeFolder(message).then(function () { srcErr = ""; renderSrc(); }, function () { srcErr = "폴더에 저장하지 못했습니다."; renderSrc(); });
+      }
+      nt = String(nt).trim();
+      if (nt && nt !== message) { message = nt; showMsg(); }
+      srcErr = ""; renderSrc();
+      return Promise.resolve();
+    }
+    if (!dirHandle) return Promise.resolve();
+    return hasPerm(false).then(function (ok) {
+      if (!ok) { needsPerm = true; renderSrc(); return; }
+      needsPerm = false;
+      return dirHandle.getFileHandle(FILE).then(function (fh) {
+        return fh.getFile().then(function (f) {
+          if (!force && f.lastModified === lastMod) return;
+          lastMod = f.lastModified;
+          return f.text().then(function (t) {
+            t = t.trim();
+            if (t) { message = t; showMsg(); }
+            srcErr = ""; renderSrc();
+          });
+        });
+      }, function (e) {
+        if (e && e.name === "NotFoundError") return writeFolder(message).then(function () { srcErr = ""; renderSrc(); });
+        throw e;
+      });
+    }).catch(function () { srcErr = "폴더를 읽지 못했습니다."; renderSrc(); });
+  }
+  function renderSrc() {
+    var el = $("srcnote");
+    var t = "";
+    if (connected()) t = needsPerm ? "폴더 접근 허용이 필요합니다 (설정)" : (srcErr || ("폴더 연결됨 · " + folderName + " / " + FILE));
+    el.textContent = t;
+    el.hidden = !t;
+  }
+
+  /* 설정 */
+  function renderSettings() {
+    $("fname").textContent = connected() ? folderName : "선택된 폴더가 없습니다";
+    $("regrant").hidden = !(!NATIVE && dirHandle && needsPerm);
+    $("unlink").hidden = !connected();
+    var note = setNote;
+    if (!fsSupported()) note = "이 브라우저는 폴더 선택을 지원하지 않습니다.";
+    $("fnote").textContent = note;
+    $("fnote").hidden = !note;
+    $("pick").disabled = !fsSupported();
+    $("pick").style.opacity = fsSupported() ? "1" : "0.4";
+    $("fallback").hidden = !(note);
+  }
+  function openSettings() { setNote = ""; renderSettings(); $("settings").hidden = false; }
+  function closeSettings() { $("settings").hidden = true; }
+  $("open-settings").addEventListener("click", openSettings);
+  $("close-settings").addEventListener("click", closeSettings);
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") closeSettings(); });
+
+  $("pick").addEventListener("click", function () {
+    setNote = "";
+    if (NATIVE) {
+      window.__onFolder = function (name) {
+        if (name) { folderName = name; save("cm-folder-name", name); needsPerm = false; srcErr = ""; readFolder(true); }
+        else { setNote = "폴더를 설정하지 못했습니다."; }
+        renderSettings(); renderSrc();
+      };
+      try { NATIVE.pickFolder(); } catch (e) { setNote = "폴더 선택 화면을 열 수 없습니다."; renderSettings(); }
+      return;
+    }
+    window.showDirectoryPicker({ mode: "readwrite", id: "cm-msg-folder" }).then(function (parent) {
+      return parent.name === APPDIR ? parent : parent.getDirectoryHandle(APPDIR, { create: true });
+    }).then(function (h) {
+      dirHandle = h; folderName = h.name; save("cm-folder-name", h.name);
+      needsPerm = false; srcErr = ""; lastMod = 0;
+      return dbSet(h).then(function () { return readFolder(true); });
+    }).catch(function (e) {
+      if (e && e.name === "AbortError") return;
+      setNote = "이 화면에서는 폴더를 열 수 없습니다. 앱을 별도 창이나 전체 화면으로 열어 다시 시도해 주세요.";
+    }).then(function () { renderSettings(); renderSrc(); });
+  });
+  $("regrant").addEventListener("click", function () {
+    if (!dirHandle) return;
+    hasPerm(true).then(function (ok) { if (ok) { needsPerm = false; return readFolder(true); } setNote = "폴더 접근이 허용되지 않았습니다."; })
+      .catch(function () { setNote = "폴더 접근을 다시 허용하지 못했습니다."; })
+      .then(function () { renderSettings(); renderSrc(); });
+  });
+  $("unlink").addEventListener("click", function () {
+    if (NATIVE) {
+      try { NATIVE.clearFolder(); } catch (e) {}
+      folderName = ""; save("cm-folder-name", ""); srcErr = ""; renderSettings(); renderSrc();
+      return;
+    }
+    dirHandle = null; folderName = ""; needsPerm = false; srcErr = ""; lastMod = 0; save("cm-folder-name", "");
+    dbDel().then(function () { renderSettings(); renderSrc(); });
+  });
+  $("import").addEventListener("click", function () { $("importfile").click(); });
+  $("importfile").addEventListener("change", function () {
+    var f = this.files && this.files[0];
+    if (!f) return;
+    f.text().then(function (t) {
+      t = t.trim();
+      if (t) { message = t; save("cm-msg", t); showMsg(); }
+    });
+  });
+
+  /* 메시지 */
+  function showMsg() { $("msg").textContent = message; }
+  function openEditor() {
+    $("view").hidden = true; $("editor").hidden = false;
+    $("draft").value = message; $("draft").focus();
+  }
+  function closeEditor() { $("editor").hidden = true; $("view").hidden = false; }
+  $("edit").addEventListener("click", openEditor);
+  $("cancel").addEventListener("click", closeEditor);
+  $("save").addEventListener("click", function () {
+    var v = $("draft").value.trim();
+    if (v) {
+      message = v; save("cm-msg", v); showMsg();
+      if (connected() && !needsPerm) {
+        writeFolder(v).then(function () { srcErr = ""; renderSrc(); })
+          .catch(function () { srcErr = "폴더에 저장하지 못했습니다."; renderSrc(); });
+      }
+    }
+    closeEditor();
+  });
+
+  /* 시계 */
+  var DAYS = ["일", "월", "화", "수", "목", "금", "토"];
+  function pad(n) { return (n < 10 ? "0" : "") + n; }
+  function tick() {
+    var d = new Date();
+    $("hm").textContent = pad(d.getHours()) + ":" + pad(d.getMinutes());
+    $("sec").textContent = ":" + pad(d.getSeconds());
+    $("date").textContent = (d.getMonth() + 1) + "월 " + d.getDate() + "일 " + DAYS[d.getDay()] + "요일";
+  }
+
+  buildThemes();
+  applyTheme();
+  showMsg();
+  tick();
+  setInterval(tick, 500);
+
+  /* 저장된 폴더 다시 연결 + 폴더 파일이 바뀌면 메시지 갱신 */
+  function sync() { if ($("editor").hidden) readFolder(false); }
+  if (fsSupported()) {
+    if (NATIVE) {
+      try { folderName = NATIVE.folderName() || ""; } catch (e) { folderName = ""; }
+      if (folderName) { renderSrc(); readFolder(true); }
+    } else {
+      dbGet().then(function (h) {
+        if (h) { dirHandle = h; folderName = h.name || folderName; renderSrc(); return readFolder(true); }
+      });
+    }
+    setInterval(sync, 10000);
+    document.addEventListener("visibilitychange", function () { if (!document.hidden) sync(); });
+    window.addEventListener("focus", sync);
+  }
+})();
+</script>
+</body>
+</html>
