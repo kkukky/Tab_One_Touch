@@ -41,7 +41,9 @@ button:focus-visible, textarea:focus-visible { outline: 4px solid #FFD400; outli
 .labelrow { display: flex; align-items: baseline; justify-content: space-between; gap: 24px; }
 .srcnote { font-size: 28px; font-weight: 700; color: var(--sec); line-height: 1.4; overflow-wrap: anywhere; }
 .scrim { position: absolute; inset: 0; z-index: 10; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.72); }
-.dialog { width: 1040px; box-sizing: border-box; max-height: 1100px; overflow-y: auto; display: flex; flex-direction: column; gap: 28px; padding: 48px; border-radius: 36px; border: 3px solid var(--ghost); background: var(--card); color: var(--text); }
+.dialog { width: 1040px; box-sizing: border-box; max-height: 1080px; overflow: hidden; display: flex; flex-direction: column; gap: 24px; padding: 40px 48px; border-radius: 36px; border: 3px solid var(--ghost); background: var(--card); color: var(--text); }
+.dbody { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; touch-action: pan-y; display: flex; flex-direction: column; gap: 28px; padding-right: 8px; }
+.dbody > * { flex: none; }
 .dialog h2 { margin: 0; font-size: 56px; font-weight: 900; }
 .fbox { display: flex; flex-direction: column; gap: 10px; padding: 28px 32px; border-radius: 24px; border: 2px solid var(--cardBorder); }
 .fname { font-size: 44px; font-weight: 900; overflow-wrap: anywhere; }
@@ -222,6 +224,7 @@ textarea { flex: 1; min-height: 0; box-sizing: border-box; padding: 24px 28px; b
   <div class="scrim" id="settings" hidden>
     <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="set-title">
       <h2 id="set-title">설정</h2>
+      <div class="dbody">
       <div>
         <div class="label" style="margin-bottom:14px">메시지 폴더</div>
         <div class="fbox">
@@ -248,10 +251,10 @@ textarea { flex: 1; min-height: 0; box-sizing: border-box; padding: 24px 28px; b
       <div>
         <div class="label" style="margin-bottom:14px">오른쪽 위 버튼 모양</div>
         <div class="fbox">
-          <div class="fhelp">테마 버튼에 색상 무늬(지금 그대로)를 쓸지, 폴더의 이미지를 쓸지 고릅니다. Tab_One_Touch 폴더에 1.jpg, 2.jpg, 3.jpg를 넣으면 순서대로 들어가며, 버튼 크기에 맞게 가운데를 기준으로 자동으로 잘라 줍니다.</div>
+          <div class="fhelp">테마 버튼에 색상 무늬(지금 그대로)를 쓸지, 폴더의 이미지를 쓸지 고릅니다. Tab_One_Touch 폴더에 1.png, 2.png, 3.png를 넣으면 순서대로 들어가며, 버튼 크기에 맞게 가운데를 기준으로 자동으로 잘라 줍니다.</div>
           <div class="vlist" style="margin-top:12px">
             <button type="button" class="vitem" id="m-color" aria-pressed="true"><span>색상 (지금 그대로)</span></button>
-            <button type="button" class="vitem" id="m-image" aria-pressed="false"><span>이미지 (1.jpg, 2.jpg, 3.jpg)</span></button>
+            <button type="button" class="vitem" id="m-image" aria-pressed="false"><span>이미지 (1.png, 2.png, 3.png)</span></button>
           </div>
           <div class="fhelp" id="imgnote"></div>
         </div>
@@ -260,6 +263,7 @@ textarea { flex: 1; min-height: 0; box-sizing: border-box; padding: 24px 28px; b
         <div class="fhelp" style="margin-bottom:14px">폴더를 열 수 없을 때는 메시지 파일(.txt)을 불러올 수 있습니다. 이 방법은 불러오기만 되고 폴더에 저장되지는 않습니다.</div>
         <button type="button" class="pill" id="import">메시지 파일 불러오기</button>
         <input type="file" id="importfile" accept=".txt,text/plain" hidden>
+      </div>
       </div>
       <div class="row"><button type="button" class="pill save" id="close-settings">닫기</button></div>
     </div>
@@ -733,7 +737,7 @@ textarea { flex: 1; min-height: 0; box-sizing: border-box; padding: 24px 28px; b
   });
   $("l-back").addEventListener("click", closeLeave);
 
-  /* 테마 버튼 이미지 (1.jpg, 2.jpg, 3.jpg) */
+  /* 테마 버튼 이미지 (1.png, 2.png, 3.png) */
   var IMGMODE = load("cm-themeimg", "0") === "1";
   var imgs = [null, null, null];
   function paintThemes() {
@@ -756,27 +760,33 @@ textarea { flex: 1; min-height: 0; box-sizing: border-box; padding: 24px 28px; b
     });
   }
   function loadImage(i) {
-    var nm = (i + 1) + ".jpg";
-    if (NATIVE) {
-      if (!folderName) return Promise.resolve(null);
-      try { return Promise.resolve(NATIVE.readImage(nm) || null); } catch (e) { return Promise.resolve(null); }
-    }
     if (!dirHandle) return Promise.resolve(null);
+    var names = [(i + 1) + ".png", (i + 1) + ".jpg"];
     return hasPerm(false).then(function (ok) {
       if (!ok) return null;
-      return dirHandle.getFileHandle(nm).then(function (fh) { return fh.getFile(); }).then(cropData, function () { return null; });
+      function tryName(k) {
+        if (k >= names.length) return null;
+        return dirHandle.getFileHandle(names[k]).then(function (fh) { return fh.getFile(); }).then(cropData, function () { return tryName(k + 1); });
+      }
+      return tryName(0);
     }).catch(function () { return null; });
   }
   function renderImgStatus() {
     $("m-color").setAttribute("aria-pressed", IMGMODE ? "false" : "true");
     $("m-image").setAttribute("aria-pressed", IMGMODE ? "true" : "false");
-    var parts = [0, 1, 2].map(function (i) { return (i + 1) + ".jpg " + (imgs[i] ? "있음" : "없음"); });
+    var parts = [0, 1, 2].map(function (i) { return (i + 1) + ".png " + (imgs[i] ? "있음" : "없음"); });
     var t = connected() ? parts.join(" · ") : "폴더를 먼저 선택하면 이미지를 확인합니다.";
     if (connected() && IMGMODE && !imgs[0] && !imgs[1] && !imgs[2]) t += "\n이미지가 없는 버튼은 색상 무늬로 보입니다.";
     $("imgnote").style.whiteSpace = "pre-line";
     $("imgnote").textContent = t;
   }
   function refreshImages() {
+    if (NATIVE) {
+      if (!folderName) { imgs = [null, null, null]; paintThemes(); renderImgStatus(); return Promise.resolve(); }
+      window.__onImages = function (a) { imgs = [a[0] || null, a[1] || null, a[2] || null]; paintThemes(); renderImgStatus(); };
+      try { NATIVE.loadImages(); } catch (e) {}
+      return Promise.resolve();
+    }
     return Promise.all([0, 1, 2].map(loadImage)).then(function (r) { imgs = r; paintThemes(); renderImgStatus(); });
   }
   function setImgMode(on) { IMGMODE = on; save("cm-themeimg", on ? "1" : "0"); paintThemes(); renderImgStatus(); }

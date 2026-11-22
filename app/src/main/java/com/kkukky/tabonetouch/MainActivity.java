@@ -162,6 +162,87 @@ public class MainActivity extends Activity {
         }).start();
     }
 
+    private final java.util.Map<String, String> imgKeys = new java.util.HashMap<String, String>();
+    private final java.util.Map<String, String> imgData = new java.util.HashMap<String, String>();
+    private final java.util.concurrent.atomic.AtomicBoolean imgBusy = new java.util.concurrent.atomic.AtomicBoolean(false);
+
+    /** 176x176(버튼 크기의 2배)으로 가운데 기준 잘라 data URL로 만듭니다. */
+    private String thumbData(DocumentFile f) {
+        try {
+            BitmapFactory.Options o = new BitmapFactory.Options();
+            o.inJustDecodeBounds = true;
+            InputStream a = getContentResolver().openInputStream(f.getUri());
+            if (a == null) return null;
+            BitmapFactory.decodeStream(a, null, o);
+            a.close();
+            int sample = 1;
+            while (o.outWidth / (sample * 2) >= 352 && o.outHeight / (sample * 2) >= 352) sample *= 2;
+            BitmapFactory.Options o2 = new BitmapFactory.Options();
+            o2.inSampleSize = sample;
+            InputStream b = getContentResolver().openInputStream(f.getUri());
+            if (b == null) return null;
+            Bitmap bmp = BitmapFactory.decodeStream(b, null, o2);
+            b.close();
+            if (bmp == null) return null;
+            Bitmap th = ThumbnailUtils.extractThumbnail(bmp, 176, 176);
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            th.compress(Bitmap.CompressFormat.JPEG, 90, out);
+            return "data:image/jpeg;base64," + Base64.encodeToString(out.toByteArray(), Base64.NO_WRAP);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private void loadImagesAsync() {
+        if (!imgBusy.compareAndSet(false, true)) return;
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                org.json.JSONArray arr = new org.json.JSONArray();
+                try {
+                    DocumentFile dir = appDir();
+                    String[] exts = {".png", ".jpg", ".jpeg"};
+                    for (int i = 1; i <= 3; i++) {
+                        String data = null;
+                        DocumentFile f = null;
+                        if (dir != null) {
+                            for (String ext : exts) {
+                                DocumentFile c = dir.findFile(i + ext);
+                                if (c != null && c.isFile()) { f = c; break; }
+                            }
+                        }
+                        if (f != null) {
+                            String key = f.getName() + "|" + f.length() + "|" + f.lastModified();
+                            String slot = String.valueOf(i);
+                            if (key.equals(imgKeys.get(slot)) && imgData.get(slot) != null) {
+                                data = imgData.get(slot);
+                            } else {
+                                data = thumbData(f);
+                                imgKeys.put(slot, key);
+                                imgData.put(slot, data);
+                            }
+                        } else {
+                            imgKeys.remove(String.valueOf(i));
+                            imgData.remove(String.valueOf(i));
+                        }
+                        arr.put(data == null ? org.json.JSONObject.NULL : data);
+                    }
+                } catch (Exception e) {
+                    arr = new org.json.JSONArray();
+                    arr.put(org.json.JSONObject.NULL).put(org.json.JSONObject.NULL).put(org.json.JSONObject.NULL);
+                }
+                final String js = "window.__onImages && window.__onImages(" + arr.toString() + ")";
+                imgBusy.set(false);
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        web.evaluateJavascript(js, null);
+                    }
+                });
+            }
+        }).start();
+    }
+
     private void closeYoutube() {
         runOnUiThread(new Runnable() {
             @Override
@@ -335,41 +416,10 @@ public class MainActivity extends Activity {
             });
         }
 
-        /** 폴더의 이미지를 176x176(버튼 크기의 2배)으로 가운데 기준 잘라 data URL로 돌려줍니다. 없으면 null. */
+        /** 폴더의 1.png~3.png를 백그라운드에서 읽어 자바스크립트에 알립니다(바뀌지 않은 파일은 다시 읽지 않음). */
         @JavascriptInterface
-        public String readImage(String name) {
-            try {
-                DocumentFile dir = appDir();
-                if (dir == null || name == null) return null;
-                DocumentFile f = dir.findFile(name);
-                if (f == null) {
-                    for (DocumentFile c : dir.listFiles()) {
-                        if (c.getName() != null && c.getName().equalsIgnoreCase(name)) { f = c; break; }
-                    }
-                }
-                if (f == null || !f.isFile()) return null;
-                BitmapFactory.Options o = new BitmapFactory.Options();
-                o.inJustDecodeBounds = true;
-                InputStream a = getContentResolver().openInputStream(f.getUri());
-                if (a == null) return null;
-                BitmapFactory.decodeStream(a, null, o);
-                a.close();
-                int sample = 1;
-                while (o.outWidth / (sample * 2) >= 352 && o.outHeight / (sample * 2) >= 352) sample *= 2;
-                BitmapFactory.Options o2 = new BitmapFactory.Options();
-                o2.inSampleSize = sample;
-                InputStream b = getContentResolver().openInputStream(f.getUri());
-                if (b == null) return null;
-                Bitmap bmp = BitmapFactory.decodeStream(b, null, o2);
-                b.close();
-                if (bmp == null) return null;
-                Bitmap th = ThumbnailUtils.extractThumbnail(bmp, 176, 176);
-                ByteArrayOutputStream out = new ByteArrayOutputStream();
-                th.compress(Bitmap.CompressFormat.JPEG, 90, out);
-                return "data:image/jpeg;base64," + Base64.encodeToString(out.toByteArray(), Base64.NO_WRAP);
-            } catch (Exception e) {
-                return null;
-            }
+        public void loadImages() {
+            loadImagesAsync();
         }
 
         /** 화면 켜짐 유지. */
