@@ -40,7 +40,7 @@ button:focus-visible, textarea:focus-visible { outline: 4px solid #FFD400; outli
 .gear svg { width: 44px; height: 44px; }
 .labelrow { display: flex; align-items: baseline; justify-content: space-between; gap: 24px; }
 .srcnote { font-size: 28px; font-weight: 700; color: var(--sec); line-height: 1.4; overflow-wrap: anywhere; }
-.scrim { position: absolute; inset: 0; z-index: 10; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.72); }
+.scrim { position: absolute; inset: 0; z-index: 10; transform: translateZ(0); will-change: transform; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.72); }
 .dialog { width: 1040px; box-sizing: border-box; max-height: 1080px; overflow: hidden; display: flex; flex-direction: column; gap: 24px; padding: 40px 48px; border-radius: 36px; border: 3px solid var(--ghost); background: var(--card); color: var(--text); }
 .dbody { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; touch-action: pan-y; display: flex; flex-direction: column; gap: 28px; padding-right: 8px; }
 .dbody > * { flex: none; }
@@ -448,8 +448,20 @@ textarea { flex: 1; min-height: 0; box-sizing: border-box; padding: 24px 28px; b
     if (typeof renderVideos === "function") renderVideos();
     if (typeof refreshImages === "function") refreshImages();
   }
-  function openSettings() { setNote = ""; renderSettings(); renderVideos(); $("settings").hidden = false; }
-  function closeSettings() { $("settings").hidden = true; }
+  /* 일부 기기에서 창이 열려도 화면이 바로 갱신되지 않아, 다시 그리도록 살짝 깨웁니다. */
+  function kick() {
+    void stage.offsetHeight;
+    stage.style.opacity = "0.99";
+    requestAnimationFrame(function () { requestAnimationFrame(function () { stage.style.opacity = ""; }); });
+    if (NATIVE && NATIVE.redraw) { try { NATIVE.redraw(); } catch (e) {} }
+  }
+  function openSettings() {
+    setNote = "";
+    $("settings").hidden = false;
+    kick();
+    try { renderSettings(); } catch (e) {}
+  }
+  function closeSettings() { $("settings").hidden = true; kick(); }
   $("open-settings").addEventListener("click", openSettings);
   $("close-settings").addEventListener("click", closeSettings);
   document.addEventListener("keydown", function (e) { if (e.key === "Escape") { closeSettings(); if (!$("attend").hidden) closeAttend(); if (!$("leave").hidden) closeLeave(); $("source").hidden = true; } });
@@ -678,7 +690,7 @@ textarea { flex: 1; min-height: 0; box-sizing: border-box; padding: 24px 28px; b
       $("vnone").textContent = none; $("vnone").hidden = !none;
     });
   }
-  function openAttend() { $("attend").hidden = false; loadVideo(); }
+  function openAttend() { $("attend").hidden = false; kick(); loadVideo(); }
   function closeAttend() { clearVideo(); vmsg(""); vstat(""); $("attend").hidden = true; }
   $("b-in").addEventListener("click", openAttend);
   $("a-back").addEventListener("click", closeAttend);
@@ -715,7 +727,7 @@ textarea { flex: 1; min-height: 0; box-sizing: border-box; padding: 24px 28px; b
   $("s-prev").addEventListener("click", function () { goSlide(slide - 1); });
   $("s-next").addEventListener("click", function () { goSlide(slide + 1); });
   $("s-first").addEventListener("click", function () { goSlide(0); });
-  $("b-src").addEventListener("click", function () { showSlide(); $("source").hidden = false; });
+  $("b-src").addEventListener("click", function () { showSlide(); $("source").hidden = false; kick(); });
   $("s-back").addEventListener("click", function () { $("source").hidden = true; });
   /* 퇴근 페이지: 유튜브 쇼츠 */
   var YT_ID = "R76bRIrqXnE";

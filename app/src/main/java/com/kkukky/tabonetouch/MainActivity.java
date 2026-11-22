@@ -422,6 +422,17 @@ public class MainActivity extends Activity {
             loadImagesAsync();
         }
 
+        /** 화면을 다시 그립니다. */
+        @JavascriptInterface
+        public void redraw() {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    web.invalidate();
+                }
+            });
+        }
+
         /** 화면 켜짐 유지. */
         @JavascriptInterface
         public void setKeepAwake(final boolean on) {
