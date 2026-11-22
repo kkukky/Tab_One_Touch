@@ -422,6 +422,35 @@ public class MainActivity extends Activity {
             loadImagesAsync();
         }
 
+        /** 폴더의 영상 파일 목록을 백그라운드에서 읽어 자바스크립트에 알립니다. */
+        @JavascriptInterface
+        public void loadVideoList() {
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    org.json.JSONArray a = new org.json.JSONArray();
+                    try {
+                        DocumentFile dir = appDir();
+                        if (dir != null) {
+                            for (DocumentFile f : dir.listFiles()) {
+                                String n = f.getName();
+                                if (n != null && n.toLowerCase(java.util.Locale.ROOT).matches(".*\\.(mp4|m4v|webm|mkv|mov)$")) a.put(n);
+                            }
+                        }
+                    } catch (Exception e) {
+                        // 읽지 못하면 빈 목록
+                    }
+                    final String js = "window.__onVideos && window.__onVideos(" + a.toString() + ")";
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            web.evaluateJavascript(js, null);
+                        }
+                    });
+                }
+            }).start();
+        }
+
         /** 화면을 다시 그립니다. */
         @JavascriptInterface
         public void redraw() {

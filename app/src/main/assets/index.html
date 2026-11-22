@@ -470,8 +470,15 @@ textarea { flex: 1; min-height: 0; box-sizing: border-box; padding: 24px 28px; b
     kick();
     try { renderSettings(); } catch (e) {}
   }
-  function closeSettings() { $("settings").hidden = true; kick(); }
-  $("open-settings").addEventListener("click", openSettings);
+  function closeSettings() {
+    if (NATIVE && location.hash === "#settings") { try { history.replaceState(null, "", location.pathname); } catch (e) {} location.reload(); return; }
+    $("settings").hidden = true; kick();
+  }
+  /* 앱에서는 설정 페이지를 새로 불러와 엽니다(창을 겹쳐 띄울 때 화면이 늦게 갱신되는 기기 문제 방지). */
+  $("open-settings").addEventListener("click", function () {
+    if (NATIVE) { location.hash = "#settings"; location.reload(); return; }
+    openSettings();
+  });
   $("close-settings").addEventListener("click", closeSettings);
   document.addEventListener("keydown", function (e) { if (e.key === "Escape") { closeSettings(); if (!$("attend").hidden) closeAttend(); if (!$("leave").hidden) closeLeave(); $("source").hidden = true; } });
 
@@ -661,7 +668,12 @@ textarea { flex: 1; min-height: 0; box-sizing: border-box; padding: 24px 28px; b
   function listVideos() {
     if (NATIVE) {
       if (!folderName) return Promise.resolve([]);
-      try { return Promise.resolve(JSON.parse(NATIVE.listVideos() || "[]")); } catch (e) { return Promise.resolve([]); }
+      return new Promise(function (res) {
+        var done = false;
+        var t = setTimeout(function () { if (!done) { done = true; res([]); } }, 8000);
+        window.__onVideos = function (a) { if (done) return; done = true; clearTimeout(t); res(a || []); };
+        try { NATIVE.loadVideoList(); } catch (e) { done = true; clearTimeout(t); res([]); }
+      });
     }
     if (!dirHandle) return Promise.resolve([]);
     return hasPerm(false).then(function (ok) {
@@ -860,6 +872,7 @@ textarea { flex: 1; min-height: 0; box-sizing: border-box; padding: 24px 28px; b
     document.addEventListener("visibilitychange", function () { if (!document.hidden) sync(); });
     window.addEventListener("focus", sync);
   }
+  if (NATIVE && location.hash === "#settings") openSettings();
 })();
 </script>
 </body>
