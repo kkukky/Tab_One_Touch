@@ -42,6 +42,11 @@ public class MainActivity extends Activity {
         s.setDomStorageEnabled(true);
         s.setLoadWithOverviewMode(false);
         s.setUseWideViewPort(true);
+        // 돋보기(핀치 확대/축소)를 끄고, 시스템 글꼴 크기 설정과 상관없이 같은 크기로 보이게 합니다.
+        s.setSupportZoom(false);
+        s.setBuiltInZoomControls(false);
+        s.setDisplayZoomControls(false);
+        s.setTextZoom(100);
 
         web.setWebViewClient(new WebViewClient());
         web.addJavascriptInterface(new Bridge(), "Native");

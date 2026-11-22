@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no">
 <title>Tab_One_Touch</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -10,7 +10,7 @@
 <style>
 /* 갤럭시탭 가로 1920x1200 고정 무대를 화면 크기에 맞춰 비율 유지로 확대/축소. 색은 테마 변수로 바뀝니다. */
 :root { color-scheme: dark; }
-html, body { height: 100%; margin: 0; background: #000; overflow: hidden; }
+html, body { height: 100%; margin: 0; background: #000; overflow: hidden; touch-action: manipulation; overscroll-behavior: none; -webkit-text-size-adjust: 100%; }
 body { font-family: "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif; }
 button { font-family: inherit; cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
 button:active:not(:disabled) { transform: scale(0.985); }
@@ -186,7 +186,12 @@ textarea { flex: 1; min-height: 0; box-sizing: border-box; padding: 24px 28px; b
     stage.style.transform = "translate(" + Math.round((w - 1920 * s) / 2) + "px," + Math.round((h - 1200 * s) / 2) + "px) scale(" + s + ")";
   }
   window.addEventListener("resize", fit);
+  window.addEventListener("orientationchange", function () { setTimeout(fit, 200); });
+  window.addEventListener("load", fit);
+  if (window.visualViewport) window.visualViewport.addEventListener("resize", fit);
   fit();
+  setTimeout(fit, 300);
+  setTimeout(fit, 1200);
 
   /* 테마 */
   function applyTheme() {
