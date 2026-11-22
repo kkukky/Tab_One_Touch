@@ -505,7 +505,7 @@ textarea { flex: 1; min-height: 0; box-sizing: border-box; padding: 24px 28px; b
   vid.addEventListener("error", function () {
     if (!vid.getAttribute("src")) return;
     var c = vid.error ? vid.error.code : 0;
-    playFail((VERR[c] || "영상을 재생하지 못했습니다.") + "\n파일: " + videoName, c);
+    playFail((VERR[c] || "영상을 재생하지 못했습니다.") + "\n파일: " + videoName + (vid.error && vid.error.message ? "\n" + vid.error.message : ""), c);
   });
   $("v-toggle").addEventListener("click", vToggle);
   $("v-big").addEventListener("click", vToggle);
@@ -523,7 +523,18 @@ textarea { flex: 1; min-height: 0; box-sizing: border-box; padding: 24px 28px; b
   $("seek").addEventListener("pointerup", function () { seeking = false; });
   $("seek").addEventListener("pointercancel", function () { seeking = false; });
 
+  var wd = 0;
+  function watch() {
+    clearTimeout(wd);
+    wd = setTimeout(function () {
+      if (vid.getAttribute("src") && vid.readyState === 0 && !vid.error) {
+        playFail("영상을 불러오지 못했습니다. 응답이 없습니다.\n파일: " + videoName + "\n(상태 " + vid.networkState + ")", 0);
+      }
+    }, 12000);
+  }
+  vid.addEventListener("loadedmetadata", function () { clearTimeout(wd); vmsg(""); });
   function clearVideo() {
+    clearTimeout(wd);
     try { vid.pause(); } catch (e) {}
     vid.removeAttribute("src");
     try { vid.load(); } catch (e) {}
@@ -540,9 +551,15 @@ textarea { flex: 1; min-height: 0; box-sizing: border-box; padding: 24px 28px; b
       var has = false;
       try { has = NATIVE.hasVideo(nm); } catch (e) {}
       if (!has) { missing(); return; }
-      found();
-      vid.src = "https://tabonetouch.local/" + encodeURIComponent(nm) + "?t=" + Date.now();
-      vid.load(); vui();
+      vstat("영상 준비 중 · " + nm, false);
+      vmsg("영상을 준비하고 있습니다.\n처음에는 파일 크기에 따라 시간이 걸릴 수 있습니다.");
+      window.__onVideo = function (ok, v) {
+        if ($("attend").hidden || nm !== videoName) return;
+        if (!ok) { vstat("✕ 영상 준비 실패 · " + nm, false); vmsg("영상을 준비하지 못했습니다.\n" + v); return; }
+        found();
+        vid.src = v; vid.load(); vui(); watch();
+      };
+      try { NATIVE.prepareVideo(nm); } catch (e) { vstat("✕ 영상 준비 실패 · " + nm, false); vmsg("영상을 준비하지 못했습니다."); }
       return;
     }
     if (!dirHandle) { vstat("✕ 폴더가 선택되지 않았습니다", false); vmsg("설정에서 폴더를 먼저 선택해 주세요."); return; }
@@ -551,7 +568,7 @@ textarea { flex: 1; min-height: 0; box-sizing: border-box; padding: 24px 28px; b
       return dirHandle.getFileHandle(nm).then(function (fh) { return fh.getFile(); }).then(function (f) {
         found();
         vUrl = URL.createObjectURL(f);
-        vid.src = vUrl; vid.load(); vui();
+        vid.src = vUrl; vid.load(); vui(); watch();
       }, function () { missing(); });
     }).catch(function () { vstat("✕ 폴더를 읽지 못했습니다", false); vmsg("폴더를 읽지 못했습니다."); });
   }
