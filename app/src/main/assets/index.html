@@ -68,6 +68,25 @@ textarea { flex: 1; min-height: 0; box-sizing: border-box; padding: 24px 28px; b
 .big.out { background: var(--outBg); border-color: var(--outBg); color: var(--outFg); }
 .big.src { background: var(--srcBg); border-color: var(--srcBg); color: var(--srcFg); }
 .big.etc { background: var(--etcBg); border-color: var(--ghost); color: var(--text); }
+
+.attend { position: absolute; inset: 0; z-index: 8; background: var(--bg); }
+.home { position: absolute; top: 40px; right: 64px; width: 88px; height: 88px; display: flex; align-items: center; justify-content: center; padding: 0; border-radius: 44px; border: 3px solid var(--ghost); background: transparent; color: var(--text); }
+.home svg { width: 44px; height: 44px; }
+.player { position: absolute; left: 192px; top: 168px; width: 1536px; height: 960px; box-sizing: border-box; display: flex; flex-direction: column; border-radius: 36px; border: 2px solid var(--cardBorder); background: var(--card); overflow: hidden; }
+.vwrap { position: relative; flex: 1; min-height: 0; background: #000; display: flex; align-items: center; justify-content: center; }
+.vwrap video { width: 100%; height: 100%; object-fit: contain; background: #000; }
+.vbig { position: absolute; width: 168px; height: 168px; display: flex; align-items: center; justify-content: center; padding: 0; border-radius: 84px; border: none; background: var(--accent); }
+.vbig svg { width: 76px; height: 76px; fill: var(--accentFg); }
+.vmsg { position: absolute; left: 80px; right: 80px; text-align: center; font-size: 44px; font-weight: 700; line-height: 1.4; color: var(--text); }
+.ctrl { display: flex; flex-direction: column; gap: 10px; padding: 12px 40px 32px; border-top: 2px solid var(--cardBorder); background: var(--card); }
+.seek { position: relative; height: 56px; cursor: pointer; touch-action: none; }
+.seek .trk { position: absolute; left: 0; right: 0; top: 23px; height: 10px; border-radius: 5px; background: var(--ghost); }
+.seek .fill { position: absolute; left: 0; top: 23px; height: 10px; border-radius: 5px; background: var(--accent); width: 0; }
+.seek .knob { position: absolute; top: 16px; width: 24px; height: 24px; margin-left: -12px; border-radius: 12px; background: var(--accent); left: 0; }
+.crow { display: flex; align-items: center; gap: 28px; }
+.cb { width: 72px; height: 72px; display: flex; align-items: center; justify-content: center; padding: 0; border-radius: 36px; border: 3px solid var(--ghost); background: transparent; color: var(--text); }
+.cb svg { width: 32px; height: 32px; }
+.ctime { font-size: 36px; font-weight: 700; font-variant-numeric: tabular-nums; }
 </style>
 </head>
 <body>
@@ -122,6 +141,34 @@ textarea { flex: 1; min-height: 0; box-sizing: border-box; padding: 24px 28px; b
       <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5.5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="18.5" cy="12" r="2"/></svg>
       <span>기타</span>
     </button>
+  </div>
+
+  <div class="attend" id="attend" hidden>
+    <button type="button" class="home" id="a-back" aria-label="시작 화면으로 돌아가기">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11.5L12 4l9 7.5"/><path d="M5.5 10v9.5h13V10"/><path d="M10 19.5v-5h4v5"/></svg>
+    </button>
+    <div class="player">
+      <div class="vwrap" id="vwrap">
+        <video id="vid" playsinline preload="metadata"></video>
+        <div class="vmsg" id="vmsg" hidden></div>
+        <button type="button" class="vbig" id="v-big" aria-label="재생" hidden>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg>
+        </button>
+      </div>
+      <div class="ctrl">
+        <div class="seek" id="seek" aria-label="재생 위치"><div class="trk"></div><div class="fill" id="v-fill"></div><div class="knob" id="v-knob"></div></div>
+        <div class="crow">
+          <button type="button" class="cb" id="v-toggle" aria-label="재생">
+            <svg id="v-ico" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"></svg>
+          </button>
+          <div class="ctime" id="v-time">00:00 / 00:00</div>
+          <div style="flex:1"></div>
+          <button type="button" class="cb" id="v-mute" aria-label="소리 끄기">
+            <svg id="v-mico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"></svg>
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <div class="scrim" id="settings" hidden>
@@ -326,7 +373,7 @@ textarea { flex: 1; min-height: 0; box-sizing: border-box; padding: 24px 28px; b
   function closeSettings() { $("settings").hidden = true; }
   $("open-settings").addEventListener("click", openSettings);
   $("close-settings").addEventListener("click", closeSettings);
-  document.addEventListener("keydown", function (e) { if (e.key === "Escape") closeSettings(); });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") { closeSettings(); if (!$("attend").hidden) closeAttend(); } });
 
   $("pick").addEventListener("click", function () {
     setNote = "";
@@ -395,6 +442,90 @@ textarea { flex: 1; min-height: 0; box-sizing: border-box; padding: 24px 28px; b
     }
     closeEditor();
   });
+
+
+  /* 출근 페이지: 설정한 폴더의 Go_Work.mp4 재생 */
+  var VIDEO = "Go_Work.mp4";
+  var vid = $("vid");
+  var vUrl = "";
+  var PLAY = '<path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/>';
+  var PAUSE = '<rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/>';
+  var SPK = '<path d="M11 5L6 9H3v6h3l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/>';
+  var MUTE = '<path d="M11 5L6 9H3v6h3l5 4V5z"/><path d="M16 9l5 6M21 9l-5 6"/>';
+  function vmsg(t) { $("vmsg").textContent = t || ""; $("vmsg").hidden = !t; }
+  function fmt(t) { t = isFinite(t) ? Math.max(0, Math.floor(t)) : 0; return pad(Math.floor(t / 60)) + ":" + pad(t % 60); }
+  function vui() {
+    var playing = !vid.paused && !vid.ended;
+    var has = !!vid.getAttribute("src");
+    $("v-ico").innerHTML = playing ? PAUSE : PLAY;
+    $("v-toggle").setAttribute("aria-label", playing ? "일시정지" : "재생");
+    $("v-big").hidden = playing || !has;
+    var d = vid.duration, c = vid.currentTime;
+    var r = d > 0 && isFinite(d) ? Math.min(1, c / d) : 0;
+    $("v-fill").style.width = (r * 100) + "%";
+    $("v-knob").style.left = (r * 100) + "%";
+    $("v-time").textContent = fmt(c) + " / " + fmt(d);
+    $("v-mico").innerHTML = vid.muted ? MUTE : SPK;
+    $("v-mute").setAttribute("aria-label", vid.muted ? "소리 켜기" : "소리 끄기");
+  }
+  function vToggle() {
+    if (!vid.getAttribute("src")) return;
+    if (vid.paused || vid.ended) { var p = vid.play(); if (p && p.catch) p.catch(function () {}); } else vid.pause();
+  }
+  ["play", "pause", "ended", "timeupdate", "loadedmetadata", "durationchange", "volumechange"].forEach(function (ev) { vid.addEventListener(ev, vui); });
+  vid.addEventListener("error", function () {
+    if (!vid.getAttribute("src")) return;
+    vmsg("영상을 재생하지 못했습니다. Go_Work.mp4 파일을 확인해 주세요.");
+    $("v-big").hidden = true;
+  });
+  $("v-toggle").addEventListener("click", vToggle);
+  $("v-big").addEventListener("click", vToggle);
+  vid.addEventListener("click", vToggle);
+  $("v-mute").addEventListener("click", function () { vid.muted = !vid.muted; });
+  function seekTo(e) {
+    var r = $("seek").getBoundingClientRect();
+    if (!(vid.duration > 0) || !r.width) return;
+    var x = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width));
+    vid.currentTime = x * vid.duration;
+  }
+  var seeking = false;
+  $("seek").addEventListener("pointerdown", function (e) { seeking = true; try { this.setPointerCapture(e.pointerId); } catch (x) {} seekTo(e); });
+  $("seek").addEventListener("pointermove", function (e) { if (seeking) seekTo(e); });
+  $("seek").addEventListener("pointerup", function () { seeking = false; });
+  $("seek").addEventListener("pointercancel", function () { seeking = false; });
+
+  function clearVideo() {
+    try { vid.pause(); } catch (e) {}
+    vid.removeAttribute("src");
+    try { vid.load(); } catch (e) {}
+    if (vUrl) { try { URL.revokeObjectURL(vUrl); } catch (e) {} vUrl = ""; }
+  }
+  function loadVideo() {
+    clearVideo(); vmsg(""); vui();
+    var noFile = "설정한 Tab_One_Touch 폴더에 " + VIDEO + " 파일이 없습니다.";
+    if (NATIVE) {
+      if (!folderName) { vmsg("설정에서 폴더를 먼저 선택해 주세요."); return; }
+      var has = false;
+      try { has = NATIVE.hasVideo(); } catch (e) {}
+      if (!has) { vmsg(noFile); return; }
+      vid.src = "https://tabonetouch.local/" + VIDEO + "?t=" + Date.now();
+      vid.load(); vui();
+      return;
+    }
+    if (!dirHandle) { vmsg("설정에서 폴더를 먼저 선택해 주세요."); return; }
+    hasPerm(true).then(function (ok) {
+      if (!ok) { vmsg("폴더 접근이 허용되지 않았습니다. 설정에서 접근을 허용해 주세요."); return; }
+      return dirHandle.getFileHandle(VIDEO).then(function (fh) { return fh.getFile(); }).then(function (f) {
+        vUrl = URL.createObjectURL(f);
+        vid.src = vUrl; vid.load(); vui();
+      }, function () { vmsg(noFile); });
+    }).catch(function () { vmsg("폴더를 읽지 못했습니다."); });
+  }
+  function openAttend() { $("attend").hidden = false; loadVideo(); }
+  function closeAttend() { clearVideo(); vmsg(""); $("attend").hidden = true; }
+  $("b-in").addEventListener("click", openAttend);
+  $("a-back").addEventListener("click", closeAttend);
+  vui();
 
   /* 시계 */
   var DAYS = ["일", "월", "화", "수", "목", "금", "토"];

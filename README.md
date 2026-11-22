@@ -8,6 +8,6 @@
 
 ## APK 받기
 
-https://github.com/kkukky/Tab_One_Touch/releases/latest/download/Tab_One_Touch.apk
+https://github.com/kkukky/Tab_One_Touch/releases/latest
 
 `main`에 푸시하면 GitHub Actions가 APK를 새로 빌드해 `latest` 릴리스에 올립니다. 디버그 서명 APK라서 설치할 때 "출처를 알 수 없는 앱" 허용이 필요할 수 있습니다.
