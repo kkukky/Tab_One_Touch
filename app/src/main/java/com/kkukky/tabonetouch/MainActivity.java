@@ -5,11 +5,8 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.ParcelFileDescriptor;
 import android.view.View;
 import android.webkit.JavascriptInterface;
-import android.webkit.WebResourceRequest;
-import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -18,13 +15,8 @@ import androidx.documentfile.provider.DocumentFile;
 
 import org.json.JSONObject;
 
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.FileInputStream;
-import java.io.FilterInputStream;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
@@ -33,7 +25,6 @@ public class MainActivity extends Activity {
     private static final int REQ_FOLDER = 1001;
     private static final String APP_DIR = "Tab_One_Touch";
     private static final String FILE_NAME = "오늘의메시지.txt";
-    private static final String VIDEO_HOST = "tabonetouch.local";
 
     private WebView web;
     private SharedPreferences prefs;
@@ -58,15 +49,9 @@ public class MainActivity extends Activity {
         s.setDisplayZoomControls(false);
         s.setTextZoom(100);
         s.setMediaPlaybackRequiresUserGesture(false);
+        s.setAllowFileAccess(true);
 
-        web.setWebViewClient(new WebViewClient() {
-            @Override
-            public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
-                Uri u = request.getUrl();
-                if (u != null && VIDEO_HOST.equals(u.getHost())) return serveVideo(request);
-                return super.shouldInterceptRequest(view, request);
-            }
-        });
+        web.setWebViewClient(new WebViewClient());
         web.addJavascriptInterface(new Bridge(), "Native");
         web.loadUrl("file:///android_asset/index.html");
         hideSystemUi();
@@ -108,76 +93,52 @@ public class MainActivity extends Activity {
     }
 
 
-    private static String mimeFor(String n) {
-        String l = n.toLowerCase(java.util.Locale.ROOT);
-        if (l.endsWith(".webm")) return "video/webm";
-        if (l.endsWith(".mkv")) return "video/x-matroska";
-        if (l.endsWith(".mov")) return "video/quicktime";
-        return "video/mp4";
-    }
-
-    /** 폴더 안의 영상 파일를 WebView에 줍니다. 되감기를 위해 Range 요청을 처리합니다. */
-    private WebResourceResponse serveVideo(WebResourceRequest req) {
-        Map<String, String> h = new HashMap<String, String>();
-        h.put("Access-Control-Allow-Origin", "*");
-        h.put("Accept-Ranges", "bytes");
-        try {
-            DocumentFile dir = appDir();
-            String name = req.getUrl().getLastPathSegment();
-            DocumentFile f = (dir == null || name == null) ? null : dir.findFile(name);
-            if (f == null || !f.isFile()) throw new IOException("none");
-            String mime = mimeFor(name);
-            ParcelFileDescriptor pfd = getContentResolver().openFileDescriptor(f.getUri(), "r");
-            if (pfd == null) throw new IOException("open");
-            long len = pfd.getStatSize();
-            if (len <= 0) len = f.length();
-            long start = 0, end = len - 1;
-            boolean partial = false;
-            String range = null;
-            for (Map.Entry<String, String> e : req.getRequestHeaders().entrySet()) {
-                if ("Range".equalsIgnoreCase(e.getKey())) range = e.getValue();
-            }
-            if (range != null && range.startsWith("bytes=")) {
-                String[] p = range.substring(6).split("-", 2);
+    /** 고른 영상을 앱 전용 폴더로 복사해 둡니다(같은 파일이면 다시 복사하지 않음). 끝나면 자바스크립트에 알립니다. */
+    private void prepareVideoAsync(final String name) {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                String err = null;
+                String url = null;
                 try {
-                    if (p[0].length() > 0) start = Long.parseLong(p[0].trim());
-                    if (p.length > 1 && p[1].trim().length() > 0) end = Long.parseLong(p[1].trim());
-                    partial = true;
-                } catch (NumberFormatException ex) {
-                    start = 0; end = len - 1; partial = false;
+                    DocumentFile dir = appDir();
+                    DocumentFile f = (dir == null || name == null) ? null : dir.findFile(name);
+                    if (f == null || !f.isFile()) throw new IOException("폴더에서 파일을 찾지 못했습니다.");
+                    String ext = name.contains(".") ? name.substring(name.lastIndexOf('.')) : ".mp4";
+                    java.io.File outDir = new java.io.File(getFilesDir(), "video");
+                    if (!outDir.exists()) outDir.mkdirs();
+                    java.io.File out = new java.io.File(outDir, "current" + ext);
+                    String key = name + "|" + f.length() + "|" + f.lastModified();
+                    if (!(out.exists() && out.length() == f.length() && key.equals(prefs.getString("video_key", "")))) {
+                        java.io.File[] old = outDir.listFiles();
+                        if (old != null) for (java.io.File o : old) o.delete();
+                        java.io.File tmp = new java.io.File(outDir, "copy.tmp");
+                        InputStream in = getContentResolver().openInputStream(f.getUri());
+                        if (in == null) throw new IOException("파일을 열지 못했습니다.");
+                        java.io.FileOutputStream os = new java.io.FileOutputStream(tmp);
+                        byte[] buf = new byte[1 << 16];
+                        int n;
+                        while ((n = in.read(buf)) > 0) os.write(buf, 0, n);
+                        os.close();
+                        in.close();
+                        if (!tmp.renameTo(out)) throw new IOException("복사한 파일을 저장하지 못했습니다.");
+                        prefs.edit().putString("video_key", key).apply();
+                    }
+                    url = Uri.fromFile(out).toString();
+                } catch (Exception e) {
+                    err = e.getMessage() == null ? e.toString() : e.getMessage();
                 }
+                final String js = url != null
+                        ? "window.__onVideo && window.__onVideo(true," + JSONObject.quote(url) + ")"
+                        : "window.__onVideo && window.__onVideo(false," + JSONObject.quote(err) + ")";
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        web.evaluateJavascript(js, null);
+                    }
+                });
             }
-            if (end > len - 1) end = len - 1;
-            if (start > end) start = end;
-            final long count = end - start + 1;
-            FileInputStream fis = new ParcelFileDescriptor.AutoCloseInputStream(pfd);
-            fis.getChannel().position(start);
-            InputStream body = new FilterInputStream(fis) {
-                long left = count;
-                @Override
-                public int read() throws IOException {
-                    if (left <= 0) return -1;
-                    int r = super.read();
-                    if (r >= 0) left--;
-                    return r;
-                }
-                @Override
-                public int read(byte[] b, int off, int n) throws IOException {
-                    if (left <= 0) return -1;
-                    int r = super.read(b, off, (int) Math.min(n, left));
-                    if (r > 0) left -= r;
-                    return r;
-                }
-            };
-            h.put("Content-Length", String.valueOf(count));
-            if (partial) {
-                h.put("Content-Range", "bytes " + start + "-" + end + "/" + len);
-                return new WebResourceResponse(mime, null, 206, "Partial Content", h, body);
-            }
-            return new WebResourceResponse(mime, null, 200, "OK", h, body);
-        } catch (Exception e) {
-            return new WebResourceResponse("text/plain", "utf-8", 404, "Not Found", h, new ByteArrayInputStream(new byte[0]));
-        }
+        }).start();
     }
 
     private void callJs(final String name) {
@@ -291,6 +252,11 @@ public class MainActivity extends Activity {
         }
 
         /** 폴더 안의 영상 파일 이름 목록(JSON 배열). */
+        @JavascriptInterface
+        public void prepareVideo(String name) {
+            prepareVideoAsync(name);
+        }
+
         @JavascriptInterface
         public String listVideos() {
             try {
