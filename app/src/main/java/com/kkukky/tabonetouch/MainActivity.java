@@ -33,7 +33,6 @@ public class MainActivity extends Activity {
     private static final int REQ_FOLDER = 1001;
     private static final String APP_DIR = "Tab_One_Touch";
     private static final String FILE_NAME = "오늘의메시지.txt";
-    private static final String VIDEO_NAME = "Go_Work.mp4";
     private static final String VIDEO_HOST = "tabonetouch.local";
 
     private WebView web;
@@ -109,15 +108,25 @@ public class MainActivity extends Activity {
     }
 
 
-    /** 폴더 안의 Go_Work.mp4를 WebView에 줍니다. 되감기를 위해 Range 요청을 처리합니다. */
+    private static String mimeFor(String n) {
+        String l = n.toLowerCase(java.util.Locale.ROOT);
+        if (l.endsWith(".webm")) return "video/webm";
+        if (l.endsWith(".mkv")) return "video/x-matroska";
+        if (l.endsWith(".mov")) return "video/quicktime";
+        return "video/mp4";
+    }
+
+    /** 폴더 안의 영상 파일를 WebView에 줍니다. 되감기를 위해 Range 요청을 처리합니다. */
     private WebResourceResponse serveVideo(WebResourceRequest req) {
         Map<String, String> h = new HashMap<String, String>();
         h.put("Access-Control-Allow-Origin", "*");
         h.put("Accept-Ranges", "bytes");
         try {
             DocumentFile dir = appDir();
-            DocumentFile f = dir == null ? null : dir.findFile(VIDEO_NAME);
+            String name = req.getUrl().getLastPathSegment();
+            DocumentFile f = (dir == null || name == null) ? null : dir.findFile(name);
             if (f == null || !f.isFile()) throw new IOException("none");
+            String mime = mimeFor(name);
             ParcelFileDescriptor pfd = getContentResolver().openFileDescriptor(f.getUri(), "r");
             if (pfd == null) throw new IOException("open");
             long len = pfd.getStatSize();
@@ -163,9 +172,9 @@ public class MainActivity extends Activity {
             h.put("Content-Length", String.valueOf(count));
             if (partial) {
                 h.put("Content-Range", "bytes " + start + "-" + end + "/" + len);
-                return new WebResourceResponse("video/mp4", null, 206, "Partial Content", h, body);
+                return new WebResourceResponse(mime, null, 206, "Partial Content", h, body);
             }
-            return new WebResourceResponse("video/mp4", null, 200, "OK", h, body);
+            return new WebResourceResponse(mime, null, 200, "OK", h, body);
         } catch (Exception e) {
             return new WebResourceResponse("text/plain", "utf-8", 404, "Not Found", h, new ByteArrayInputStream(new byte[0]));
         }
@@ -270,14 +279,31 @@ public class MainActivity extends Activity {
         }
 
         @JavascriptInterface
-        public boolean hasVideo() {
+        public boolean hasVideo(String name) {
             try {
                 DocumentFile dir = appDir();
-                if (dir == null) return false;
-                DocumentFile f = dir.findFile(VIDEO_NAME);
+                if (dir == null || name == null) return false;
+                DocumentFile f = dir.findFile(name);
                 return f != null && f.isFile();
             } catch (Exception e) {
                 return false;
+            }
+        }
+
+        /** 폴더 안의 영상 파일 이름 목록(JSON 배열). */
+        @JavascriptInterface
+        public String listVideos() {
+            try {
+                DocumentFile dir = appDir();
+                org.json.JSONArray a = new org.json.JSONArray();
+                if (dir == null) return a.toString();
+                for (DocumentFile f : dir.listFiles()) {
+                    String n = f.getName();
+                    if (f.isFile() && n != null && n.toLowerCase(java.util.Locale.ROOT).matches(".*\\.(mp4|m4v|webm|mkv|mov)$")) a.put(n);
+                }
+                return a.toString();
+            } catch (Exception e) {
+                return "[]";
             }
         }
 
