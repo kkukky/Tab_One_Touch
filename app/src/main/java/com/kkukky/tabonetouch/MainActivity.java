@@ -451,6 +451,16 @@ public class MainActivity extends Activity {
             }).start();
         }
 
+        /** 설치된 앱의 버전 이름. */
+        @JavascriptInterface
+        public String appVersion() {
+            try {
+                return getPackageManager().getPackageInfo(getPackageName(), 0).versionName;
+            } catch (Exception e) {
+                return "";
+            }
+        }
+
         /** 화면을 다시 그립니다. */
         @JavascriptInterface
         public void redraw() {
