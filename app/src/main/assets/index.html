@@ -99,6 +99,8 @@ textarea { flex: 1; min-height: 0; box-sizing: border-box; padding: 24px 28px; b
 .sarrow:disabled { opacity: 0.3; cursor: default; }
 .sbar { position: absolute; left: 0; right: 0; bottom: 72px; display: flex; align-items: center; justify-content: center; gap: 48px; }
 .scount { font-size: 44px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--sec); }
+.ytwrap { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; background: #000; }
+.ytwrap iframe { height: 100%; aspect-ratio: 9 / 16; border: 0; background: #000; }
 </style>
 </head>
 <body>
@@ -199,6 +201,11 @@ textarea { flex: 1; min-height: 0; box-sizing: border-box; padding: 24px 28px; b
       <div class="scount" id="s-count"></div>
       <button type="button" class="pill main" id="s-first">처음부터 보기</button>
     </div>
+  <div class="attend" id="leave" hidden>
+    <button type="button" class="home" id="l-back" aria-label="시작 화면으로 돌아가기">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11.5L12 4l9 7.5"/><path d="M5.5 10v9.5h13V10"/><path d="M10 19.5v-5h4v5"/></svg>
+    </button>
+    <div class="player"><div class="ytwrap" id="ytwrap"></div></div>
   </div>
 
   <div class="scrim" id="settings" hidden>
@@ -413,7 +420,7 @@ textarea { flex: 1; min-height: 0; box-sizing: border-box; padding: 24px 28px; b
   function closeSettings() { $("settings").hidden = true; }
   $("open-settings").addEventListener("click", openSettings);
   $("close-settings").addEventListener("click", closeSettings);
-  document.addEventListener("keydown", function (e) { if (e.key === "Escape") { closeSettings(); if (!$("attend").hidden) closeAttend(); $("source").hidden = true; } });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") { closeSettings(); if (!$("attend").hidden) closeAttend(); if (!$("leave").hidden) closeLeave(); $("source").hidden = true; } });
 
   $("pick").addEventListener("click", function () {
     setNote = "";
@@ -678,6 +685,25 @@ textarea { flex: 1; min-height: 0; box-sizing: border-box; padding: 24px 28px; b
   $("s-first").addEventListener("click", function () { goSlide(0); });
   $("b-src").addEventListener("click", function () { showSlide(); $("source").hidden = false; });
   $("s-back").addEventListener("click", function () { $("source").hidden = true; });
+  /* 퇴근 페이지: 유튜브 쇼츠 */
+  var YT_ID = "R76bRIrqXnE";
+  function closeLeave() { $("ytwrap").textContent = ""; $("leave").hidden = true; }
+  $("b-out").addEventListener("click", function () {
+    if (NATIVE && NATIVE.openYoutube) {
+      var cs = getComputedStyle(stage);
+      try { NATIVE.openYoutube(YT_ID, cs.getPropertyValue("--bg").trim(), cs.getPropertyValue("--text").trim(), cs.getPropertyValue("--ghost").trim()); } catch (e) {}
+      return;
+    }
+    var f = document.createElement("iframe");
+    f.src = "https://www.youtube.com/embed/" + YT_ID + "?playsinline=1&rel=0&autoplay=1";
+    f.setAttribute("allow", "autoplay; encrypted-media; picture-in-picture");
+    f.setAttribute("allowfullscreen", "");
+    f.setAttribute("referrerpolicy", "strict-origin-when-cross-origin");
+    f.title = "퇴근 영상";
+    $("ytwrap").textContent = ""; $("ytwrap").appendChild(f);
+    $("leave").hidden = false;
+  });
+  $("l-back").addEventListener("click", closeLeave);
 
   /* 시계 */
   var DAYS = ["일", "월", "화", "수", "목", "금", "토"];

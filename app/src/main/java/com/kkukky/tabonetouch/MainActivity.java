@@ -6,6 +6,7 @@ import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
 import android.view.View;
+import android.widget.FrameLayout;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
@@ -27,6 +28,7 @@ public class MainActivity extends Activity {
     private static final String FILE_NAME = "오늘의메시지.txt";
 
     private WebView web;
+    private WebView yt;
     private SharedPreferences prefs;
 
     @Override
@@ -36,7 +38,21 @@ public class MainActivity extends Activity {
 
         web = new WebView(this);
         web.setBackgroundColor(0xFF000000);
-        setContentView(web);
+        FrameLayout root = new FrameLayout(this);
+        root.setBackgroundColor(0xFF000000);
+        root.addView(web, new FrameLayout.LayoutParams(-1, -1));
+        yt = new WebView(this);
+        yt.setBackgroundColor(0xFF000000);
+        yt.setVisibility(View.GONE);
+        root.addView(yt, new FrameLayout.LayoutParams(-1, -1));
+        setContentView(root);
+        WebSettings ys = yt.getSettings();
+        ys.setJavaScriptEnabled(true);
+        ys.setDomStorageEnabled(true);
+        ys.setMediaPlaybackRequiresUserGesture(false);
+        ys.setSupportZoom(false);
+        yt.setWebViewClient(new WebViewClient());
+        yt.addJavascriptInterface(new YtBridge(), "Native2");
 
         WebSettings s = web.getSettings();
         s.setJavaScriptEnabled(true);
@@ -139,6 +155,43 @@ public class MainActivity extends Activity {
                 });
             }
         }).start();
+    }
+
+    private void closeYoutube() {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                yt.loadUrl("about:blank");
+                yt.setVisibility(View.GONE);
+            }
+        });
+    }
+
+    @Override
+    public void onBackPressed() {
+        if (yt != null && yt.getVisibility() == View.VISIBLE) closeYoutube();
+        else super.onBackPressed();
+    }
+
+    private static String color(String c, String d) {
+        return (c != null && c.matches("#[0-9A-Fa-f]{3,8}")) ? c : d;
+    }
+
+    private class YtBridge {
+        @JavascriptInterface
+        public void close() {
+            closeYoutube();
+        }
+
+        @JavascriptInterface
+        public void external(String id) {
+            if (id == null || !id.matches("[A-Za-z0-9_-]{6,20}")) return;
+            try {
+                startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("https://www.youtube.com/shorts/" + id)));
+            } catch (Exception e) {
+                // 열 수 있는 앱이 없으면 아무것도 하지 않습니다.
+            }
+        }
     }
 
     private void callJs(final String name) {
@@ -252,6 +305,31 @@ public class MainActivity extends Activity {
         }
 
         /** 폴더 안의 영상 파일 이름 목록(JSON 배열). */
+        @JavascriptInterface
+        public void openYoutube(final String id, String bg, String fg, String ghost) {
+            if (id == null || !id.matches("[A-Za-z0-9_-]{6,20}")) return;
+            final String b = color(bg, "#000000"), f = color(fg, "#FFFFFF"), g = color(ghost, "#4A4A4A");
+            final String html = "<!doctype html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">"
+                    + "<style>html,body{margin:0;height:100%;background:" + b + ";overflow:hidden;font-family:sans-serif}"
+                    + "#f{position:absolute;left:50%;top:14vh;height:80vh;aspect-ratio:9/16;transform:translateX(-50%);border:0;border-radius:1.5vh;background:#000}"
+                    + "#b{position:absolute;top:3.3vh;right:3.3vw;width:7.3vh;height:7.3vh;box-sizing:border-box;border-radius:50%;border:3px solid " + g + ";background:transparent;color:" + f + ";display:flex;align-items:center;justify-content:center;padding:0}"
+                    + "#b svg{width:50%;height:50%}"
+                    + "#o{position:absolute;left:0;right:0;bottom:1.6vh;text-align:center}"
+                    + "#o button{background:transparent;border:0;color:" + f + ";opacity:.7;font-size:2.6vh;text-decoration:underline}"
+                    + "</style></head><body>"
+                    + "<iframe id=\"f\" src=\"https://www.youtube.com/embed/" + id + "?playsinline=1&rel=0&autoplay=1\" allow=\"autoplay; encrypted-media; picture-in-picture\" referrerpolicy=\"strict-origin-when-cross-origin\"></iframe>"
+                    + "<button id=\"b\" aria-label=\"시작 화면으로 돌아가기\" onclick=\"Native2.close()\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M3 11.5L12 4l9 7.5\"/><path d=\"M5.5 10v9.5h13V10\"/><path d=\"M10 19.5v-5h4v5\"/></svg></button>"
+                    + "<div id=\"o\"><button onclick=\"Native2.external('" + id + "')\">재생되지 않으면 YouTube에서 열기</button></div>"
+                    + "</body></html>";
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    yt.loadDataWithBaseURL("https://tabonetouch.local/", html, "text/html", "utf-8", null);
+                    yt.setVisibility(View.VISIBLE);
+                }
+            });
+        }
+
         @JavascriptInterface
         public void prepareVideo(String name) {
             prepareVideoAsync(name);
