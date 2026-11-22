@@ -77,7 +77,7 @@ textarea { flex: 1; min-height: 0; box-sizing: border-box; padding: 24px 28px; b
 .vwrap video { width: 100%; height: 100%; object-fit: contain; background: #000; }
 .vbig { position: absolute; width: 168px; height: 168px; display: flex; align-items: center; justify-content: center; padding: 0; border-radius: 84px; border: none; background: var(--accent); }
 .vbig svg { width: 76px; height: 76px; fill: var(--accentFg); }
-.vmsg { position: absolute; left: 80px; right: 80px; text-align: center; font-size: 44px; font-weight: 700; line-height: 1.4; color: var(--text); }
+.vmsg { white-space: pre-line; position: absolute; left: 80px; right: 80px; text-align: center; font-size: 44px; font-weight: 700; line-height: 1.4; color: var(--text); }
 .ctrl { display: flex; flex-direction: column; gap: 10px; padding: 12px 40px 32px; border-top: 2px solid var(--cardBorder); background: var(--card); }
 .seek { position: relative; height: 56px; cursor: pointer; touch-action: none; }
 .seek .trk { position: absolute; left: 0; right: 0; top: 23px; height: 10px; border-radius: 5px; background: var(--ghost); }
@@ -488,13 +488,24 @@ textarea { flex: 1; min-height: 0; box-sizing: border-box; padding: 24px 28px; b
   }
   function vToggle() {
     if (!vid.getAttribute("src")) return;
-    if (vid.paused || vid.ended) { var p = vid.play(); if (p && p.catch) p.catch(function () {}); } else vid.pause();
+    if (vid.paused || vid.ended) { var p = vid.play(); if (p && p.catch) p.catch(function (e) { if (e && e.name === "AbortError") return; playFail("영상을 재생하지 못했습니다. (" + ((e && e.name) || "오류") + ")\n파일: " + videoName, 0); }); } else vid.pause();
   }
   ["play", "pause", "ended", "timeupdate", "loadedmetadata", "durationchange", "volumechange"].forEach(function (ev) { vid.addEventListener(ev, vui); });
+  var VERR = {
+    1: "재생이 중단되었습니다.",
+    2: "영상 파일을 읽는 중 오류가 발생했습니다.",
+    3: "영상을 해석하지 못했습니다. 파일이 손상되었을 수 있습니다.",
+    4: "이 영상 형식은 재생할 수 없습니다. 코덱을 지원하지 않거나 파일이 올바르지 않을 수 있습니다."
+  };
+  function playFail(text, code) {
+    vstat("✕ 재생 오류 · " + videoName + (code ? " (오류 " + code + ")" : ""), false);
+    vmsg(text);
+    $("v-big").hidden = true;
+  }
   vid.addEventListener("error", function () {
     if (!vid.getAttribute("src")) return;
-    vmsg("영상을 재생하지 못했습니다. Go_Work.mp4 파일을 확인해 주세요.");
-    $("v-big").hidden = true;
+    var c = vid.error ? vid.error.code : 0;
+    playFail((VERR[c] || "영상을 재생하지 못했습니다.") + "\n파일: " + videoName, c);
   });
   $("v-toggle").addEventListener("click", vToggle);
   $("v-big").addEventListener("click", vToggle);
