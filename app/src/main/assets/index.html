@@ -219,6 +219,8 @@ textarea { flex: 1; min-height: 0; box-sizing: border-box; padding: 24px 28px; b
       <div class="scount" id="s-count"></div>
       <button type="button" class="pill main" id="s-first">처음부터 보기</button>
     </div>
+  </div>
+
   <div class="attend" id="leave" hidden>
     <button type="button" class="home" id="l-back" aria-label="시작 화면으로 돌아가기">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11.5L12 4l9 7.5"/><path d="M5.5 10v9.5h13V10"/><path d="M10 19.5v-5h4v5"/></svg>
@@ -470,15 +472,8 @@ textarea { flex: 1; min-height: 0; box-sizing: border-box; padding: 24px 28px; b
     kick();
     try { renderSettings(); } catch (e) {}
   }
-  function closeSettings() {
-    if (NATIVE && location.hash === "#settings") { try { history.replaceState(null, "", location.pathname); } catch (e) {} location.reload(); return; }
-    $("settings").hidden = true; kick();
-  }
-  /* 앱에서는 설정 페이지를 새로 불러와 엽니다(창을 겹쳐 띄울 때 화면이 늦게 갱신되는 기기 문제 방지). */
-  $("open-settings").addEventListener("click", function () {
-    if (NATIVE) { location.hash = "#settings"; location.reload(); return; }
-    openSettings();
-  });
+  function closeSettings() { $("settings").hidden = true; kick(); }
+  $("open-settings").addEventListener("click", openSettings);
   $("close-settings").addEventListener("click", closeSettings);
   document.addEventListener("keydown", function (e) { if (e.key === "Escape") { closeSettings(); if (!$("attend").hidden) closeAttend(); if (!$("leave").hidden) closeLeave(); $("source").hidden = true; } });
 
@@ -872,7 +867,6 @@ textarea { flex: 1; min-height: 0; box-sizing: border-box; padding: 24px 28px; b
     document.addEventListener("visibilitychange", function () { if (!document.hidden) sync(); });
     window.addEventListener("focus", sync);
   }
-  if (NATIVE && location.hash === "#settings") openSettings();
 })();
 </script>
 </body>
