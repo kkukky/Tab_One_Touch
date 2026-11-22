@@ -115,6 +115,17 @@ textarea { flex: 1; min-height: 0; box-sizing: border-box; padding: 24px 28px; b
 .scol { display: flex; flex-direction: column; gap: 28px; min-width: 0; }
 .scol > * { flex: none; }
 .sver { position: absolute; left: 192px; top: 1140px; font-size: 30px; font-weight: 700; opacity: 0.7; }
+.spage .label { font-size: 26px; margin-bottom: 10px; }
+.spage .fbox { gap: 10px; padding: 20px 26px; border-radius: 20px; }
+.spage .fname { font-size: 34px; }
+.spage .fhelp { font-size: 23px; line-height: 1.35; }
+.spage .srcnote, .spage .note { font-size: 23px; line-height: 1.35; }
+.spage .pill { height: 64px; padding: 0 30px; font-size: 27px; border-radius: 32px; }
+.spage .vlist { flex-direction: row; flex-wrap: wrap; gap: 12px; margin-top: 4px; }
+.spage .vitem { min-height: 58px; padding: 0 26px; border-radius: 29px; font-size: 27px; }
+.spage .vitem span + span { display: none; }
+.spage .sbody { gap: 32px; }
+.spage .scol { gap: 24px; }
 </style>
 </head>
 <body>
@@ -230,56 +241,56 @@ textarea { flex: 1; min-height: 0; box-sizing: border-box; padding: 24px 28px; b
     <div class="sver" id="sver"></div>
     <div class="sbody">
       <div class="scol">
-      <div>
-        <div class="label" style="margin-bottom:14px">메시지 폴더</div>
-        <div class="fbox">
-          <div class="fname" id="fname"></div>
-          <div class="fhelp">고른 위치에 Tab_One_Touch 폴더를 만들어 사용합니다(이미 있으면 그대로 사용). 그 안의 오늘의메시지.txt 파일로 오늘의 메시지를 읽고 저장하며, 파일이 없으면 새로 만듭니다.</div>
-          <div class="srcnote" id="srcnote" hidden></div>
+        <div>
+          <div class="label">메시지 폴더</div>
+          <div class="fbox">
+            <div class="fname" id="fname"></div>
+            <div class="fhelp">고른 위치에 Tab_One_Touch 폴더를 만들어 사용합니다. 그 안의 오늘의메시지.txt로 메시지를 읽고 저장하며, 없으면 새로 만듭니다.</div>
+            <div class="srcnote" id="srcnote" hidden></div>
+            <div class="note" id="fnote" hidden></div>
+            <div class="wrap">
+              <button type="button" class="pill main" id="pick">폴더 선택</button>
+              <button type="button" class="pill" id="regrant" hidden>접근 허용</button>
+              <button type="button" class="pill" id="unlink" hidden>폴더 해제</button>
+            </div>
+            <div id="fallback" hidden>
+              <div class="fhelp" style="margin-bottom:10px">폴더를 열 수 없을 때는 메시지 파일(.txt)을 불러올 수 있습니다(불러오기만 되고 저장은 안 됩니다).</div>
+              <button type="button" class="pill" id="import">메시지 파일 불러오기</button>
+              <input type="file" id="importfile" accept=".txt,text/plain" hidden>
+            </div>
+          </div>
         </div>
-      </div>
-      <div class="note" id="fnote" hidden></div>
-      <div class="wrap">
-        <button type="button" class="pill main" id="pick">폴더 선택</button>
-        <button type="button" class="pill" id="regrant" hidden>접근 허용</button>
-        <button type="button" class="pill" id="unlink" hidden>폴더 해제</button>
-      </div>
-      <div>
-        <div class="label" style="margin-bottom:14px">출근 영상</div>
-        <div class="fbox">
-          <div class="fname" id="vname"></div>
-          <div class="fhelp">출근 버튼을 누르면 재생할 영상입니다. 설정한 Tab_One_Touch 폴더 안의 영상 파일 중에서 고릅니다.</div>
-          <div class="vlist" id="vlist" style="margin-top:12px"></div>
-          <div class="fhelp" id="vnone" hidden></div>
+        <div>
+          <div class="label">오른쪽 위 버튼 모양</div>
+          <div class="fbox">
+            <div class="fhelp">폴더에 1.png, 2.png, 3.png를 넣으면 테마 버튼 1~3번에 순서대로 들어가며, 버튼 크기에 맞게 자동으로 잘라 줍니다.</div>
+            <div class="vlist">
+              <button type="button" class="vitem" id="m-color" aria-pressed="true"><span>색상 (지금 그대로)</span></button>
+              <button type="button" class="vitem" id="m-image" aria-pressed="false"><span>이미지</span></button>
+            </div>
+            <div class="fhelp" id="imgnote"></div>
+          </div>
         </div>
-      </div>
-      <div>
-        <div class="label" style="margin-bottom:14px">퇴근 영상</div>
-        <div class="fbox">
-          <div class="fname" id="vname2"></div>
-          <div class="fhelp">퇴근 버튼을 누르면 재생할 영상입니다. 기본 파일은 Go_Home.mp4이며, 설정한 Tab_One_Touch 폴더 안의 영상 파일 중에서 고릅니다.</div>
-          <div class="vlist" id="vlist2" style="margin-top:12px"></div>
-          <div class="fhelp" id="vnone2" hidden></div>
-        </div>
-      </div>
       </div>
       <div class="scol">
-      <div>
-        <div class="label" style="margin-bottom:14px">오른쪽 위 버튼 모양</div>
-        <div class="fbox">
-          <div class="fhelp">테마 버튼에 색상 무늬(지금 그대로)를 쓸지, 폴더의 이미지를 쓸지 고릅니다. Tab_One_Touch 폴더에 1.png, 2.png, 3.png를 넣으면 순서대로 들어가며, 버튼 크기에 맞게 가운데를 기준으로 자동으로 잘라 줍니다.</div>
-          <div class="vlist" style="margin-top:12px">
-            <button type="button" class="vitem" id="m-color" aria-pressed="true"><span>색상 (지금 그대로)</span></button>
-            <button type="button" class="vitem" id="m-image" aria-pressed="false"><span>이미지 (1.png, 2.png, 3.png)</span></button>
+        <div>
+          <div class="label">출근 영상</div>
+          <div class="fbox">
+            <div class="fname" id="vname"></div>
+            <div class="fhelp">출근 버튼을 누르면 재생할 영상입니다. 폴더 안의 영상 파일 중에서 고릅니다.</div>
+            <div class="vlist" id="vlist"></div>
+            <div class="fhelp" id="vnone" hidden></div>
           </div>
-          <div class="fhelp" id="imgnote"></div>
         </div>
-      </div>
-      <div id="fallback" hidden>
-        <div class="fhelp" style="margin-bottom:14px">폴더를 열 수 없을 때는 메시지 파일(.txt)을 불러올 수 있습니다. 이 방법은 불러오기만 되고 폴더에 저장되지는 않습니다.</div>
-        <button type="button" class="pill" id="import">메시지 파일 불러오기</button>
-        <input type="file" id="importfile" accept=".txt,text/plain" hidden>
-      </div>
+        <div>
+          <div class="label">퇴근 영상</div>
+          <div class="fbox">
+            <div class="fname" id="vname2"></div>
+            <div class="fhelp">퇴근 버튼을 누르면 재생할 영상입니다. 기본 파일은 Go_Home.mp4입니다.</div>
+            <div class="vlist" id="vlist2"></div>
+            <div class="fhelp" id="vnone2" hidden></div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
