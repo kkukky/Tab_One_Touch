@@ -125,14 +125,14 @@ public class MainActivity extends Activity {
                     DocumentFile dir = appDir();
                     DocumentFile f = (dir == null || name == null) ? null : dir.findFile(name);
                     if (f == null || !f.isFile()) throw new IOException("폴더에서 파일을 찾지 못했습니다.");
-                    String ext = name.contains(".") ? name.substring(name.lastIndexOf('.')) : ".mp4";
                     java.io.File outDir = new java.io.File(getFilesDir(), "video");
                     if (!outDir.exists()) outDir.mkdirs();
-                    java.io.File out = new java.io.File(outDir, "current" + ext);
+                    int dot = name.lastIndexOf('.');
+                    String ext = dot >= 0 ? name.substring(dot).replaceAll("[^A-Za-z0-9.]", "") : ".mp4";
+                    String safe = "v_" + Integer.toHexString(name.hashCode()) + ext;
+                    java.io.File out = new java.io.File(outDir, safe);
                     String key = name + "|" + f.length() + "|" + f.lastModified();
-                    if (!(out.exists() && out.length() == f.length() && key.equals(prefs.getString("video_key", "")))) {
-                        java.io.File[] old = outDir.listFiles();
-                        if (old != null) for (java.io.File o : old) o.delete();
+                    if (!(out.exists() && out.length() == f.length() && key.equals(prefs.getString("vk_" + safe, "")))) {
                         java.io.File tmp = new java.io.File(outDir, "copy.tmp");
                         InputStream in = getContentResolver().openInputStream(f.getUri());
                         if (in == null) throw new IOException("파일을 열지 못했습니다.");
@@ -142,8 +142,21 @@ public class MainActivity extends Activity {
                         while ((n = in.read(buf)) > 0) os.write(buf, 0, n);
                         os.close();
                         in.close();
+                        if (out.exists()) out.delete();
                         if (!tmp.renameTo(out)) throw new IOException("복사한 파일을 저장하지 못했습니다.");
-                        prefs.edit().putString("video_key", key).apply();
+                        prefs.edit().putString("vk_" + safe, key).apply();
+                    }
+                    out.setLastModified(System.currentTimeMillis());
+                    // 출근·퇴근 영상 두 개만 남기고 오래된 복사본은 지웁니다.
+                    java.io.File[] all = outDir.listFiles();
+                    if (all != null) {
+                        java.util.Arrays.sort(all, new java.util.Comparator<java.io.File>() {
+                            @Override
+                            public int compare(java.io.File x, java.io.File y) {
+                                return Long.compare(y.lastModified(), x.lastModified());
+                            }
+                        });
+                        for (int i = 2; i < all.length; i++) all[i].delete();
                     }
                     url = Uri.fromFile(out).toString();
                 } catch (Exception e) {
